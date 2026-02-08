@@ -1,0 +1,73 @@
+export const makePrismaMock = () => ({
+  user: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  post: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  comment: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  like: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  tag: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    upsert: jest.fn(),
+  },
+  postTag: {
+    createMany: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  postMedia: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+  },
+  notification: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  pushToken: {
+    findMany: jest.fn(),
+    upsert: jest.fn(),
+    updateMany: jest.fn(),
+  },
+  invitationCode: {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
+  refreshToken: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  $transaction: jest.fn(),
+});
