@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: family-threads-db
+    environment:
+      POSTGRES_USER: family_user
+      POSTGRES_PASSWORD: family_secret_pw
+      POSTGRES_DB: family_threads
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
