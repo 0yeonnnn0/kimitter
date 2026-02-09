@@ -17,6 +17,7 @@ import * as postService from '../../src/services/postService';
 import * as commentService from '../../src/services/commentService';
 import * as likeService from '../../src/services/likeService';
 import type { Post, Comment } from '../../src/types/models';
+import { getFileUrl } from '../../src/config/constants';
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -148,7 +149,7 @@ export default function PostDetailScreen() {
           <View>
             <View style={styles.postHeader}>
               {post.user.profileImageUrl ? (
-                <Image source={{ uri: post.user.profileImageUrl }} style={styles.avatar} />
+                <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
@@ -163,7 +164,7 @@ export default function PostDetailScreen() {
             {post.media.map((m) => (
               <Image
                 key={m.id}
-                source={{ uri: m.fileUrl }}
+                source={{ uri: getFileUrl(m.fileUrl) }}
                 style={styles.postMedia}
                 resizeMode="cover"
               />

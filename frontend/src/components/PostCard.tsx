@@ -1,6 +1,7 @@
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Post } from '../types/models';
+import { getFileUrl } from '../config/constants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -45,7 +46,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
     >
       <View style={styles.header}>
         {post.user.profileImageUrl ? (
-          <Image source={{ uri: post.user.profileImageUrl }} style={styles.avatar} />
+          <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
@@ -61,7 +62,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
 
       {firstMedia ? (
         <Image
-          source={{ uri: firstMedia.fileUrl }}
+          source={{ uri: getFileUrl(firstMedia.fileUrl) }}
           style={styles.media}
           resizeMode="cover"
         />
