@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -12,7 +12,6 @@ import PostCard from '../../src/components/PostCard';
 
 export default function HomeScreen() {
   const { posts, isLoading, isRefreshing, fetchPosts, loadMore, toggleLike } = useFeedStore();
-  const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchPosts();
@@ -20,15 +19,6 @@ export default function HomeScreen() {
 
   const handleLikeToggle = useCallback(
     (postId: number, liked: boolean) => {
-      setLikedPostIds((prev) => {
-        const next = new Set(prev);
-        if (liked) {
-          next.add(postId);
-        } else {
-          next.delete(postId);
-        }
-        return next;
-      });
       toggleLike(postId, liked);
     },
     [toggleLike],
@@ -49,7 +39,7 @@ export default function HomeScreen() {
         renderItem={({ item }) => (
           <PostCard
             post={item}
-            isLiked={likedPostIds.has(item.id)}
+            isLiked={item.isLiked}
             onLikeToggle={handleLikeToggle}
           />
         )}

@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 export const createPostSchema = Joi.object({
-  content: Joi.string().min(1).max(5000).required(),
+  content: Joi.string().min(1).max(5000).allow('').optional(),
   tags: Joi.string().optional(),
 });
 

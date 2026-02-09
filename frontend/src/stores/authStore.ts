@@ -67,6 +67,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const user = JSON.parse(userStr) as User;
         set({ user, accessToken: token, isLoggedIn: true });
       }
+    } catch {
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.USER);
+      set({ user: null, accessToken: null, isLoggedIn: false });
     } finally {
       set({ isLoading: false });
     }

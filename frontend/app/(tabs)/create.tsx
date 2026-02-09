@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useRouter } from 'expo-router';
 import { useFeedStore } from '../../src/stores/feedStore';
 import * as postService from '../../src/services/postService';
@@ -39,11 +40,27 @@ export default function CreateScreen() {
       quality: 0.8,
     });
     if (!result.canceled) {
-      const picked: PickedMedia[] = result.assets.map((a) => ({
-        uri: a.uri,
-        type: a.type === 'video' ? 'video' : 'image',
-        fileName: a.fileName ?? `media_${Date.now()}`,
-      }));
+      const picked: PickedMedia[] = await Promise.all(
+        result.assets.map(async (a, index) => {
+          if (a.type === 'video') {
+            return {
+              uri: a.uri,
+              type: 'video' as const,
+              fileName: `video_${Date.now()}_${index}.mp4`,
+            };
+          }
+          const compressed = await ImageManipulator.manipulateAsync(
+            a.uri,
+            [{ resize: { width: 1920 } }],
+            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          return {
+            uri: compressed.uri,
+            type: 'image' as const,
+            fileName: `image_${Date.now()}_${index}.jpg`,
+          };
+        }),
+      );
       setMedia((prev) => [...prev, ...picked].slice(0, 10));
     }
   };
@@ -76,18 +93,30 @@ export default function CreateScreen() {
       if (tags.length > 0) {
         formData.append('tags', JSON.stringify(tags));
       }
-      media.forEach((m) => {
+      media.forEach((m, index) => {
+        const fileExtension = m.type === 'video' ? 'mp4' : 'jpg';
+        const mimeType = m.type === 'video' ? 'video/mp4' : 'image/jpeg';
         formData.append('media', {
           uri: m.uri,
-          type: m.type === 'video' ? 'video/mp4' : 'image/jpeg',
-          name: m.fileName,
-        } as unknown as Blob);
+          type: mimeType,
+          name: m.fileName || `upload_${Date.now()}_${index}.${fileExtension}`,
+        } as any);
       });
       const { data } = await postService.createPost(formData);
       addPost(data.data);
       router.replace('/(tabs)');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '게시물 작성에 실패했습니다.';
+      console.error('Post creation error:', err);
+      let message = '게시물 작성에 실패했습니다.';
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      if (typeof err === 'object' && err !== null && 'response' in err) {
+        const axiosErr = err as any;
+        if (axiosErr.response?.data?.message) {
+          message = axiosErr.response.data.message;
+        }
+      }
       Alert.alert('오류', message);
     } finally {
       setLoading(false);

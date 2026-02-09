@@ -63,21 +63,25 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     set((state) => ({
       posts: state.posts.map((p) =>
         p.id === postId
-          ? { ...p, _count: { ...p._count, likes: p._count.likes + (liked ? 1 : -1) } }
+          ? {
+              ...p,
+              isLiked: liked,
+              _count: { ...p._count, likes: p._count.likes + (liked ? 1 : -1) },
+            }
           : p,
       ),
     }));
     try {
-      if (liked) {
-        await likeService.likePost(postId);
-      } else {
-        await likeService.unlikePost(postId);
-      }
+      await likeService.togglePostLike(postId);
     } catch {
       set((state) => ({
         posts: state.posts.map((p) =>
           p.id === postId
-            ? { ...p, _count: { ...p._count, likes: p._count.likes + (liked ? -1 : 1) } }
+            ? {
+                ...p,
+                isLiked: !liked,
+                _count: { ...p._count, likes: p._count.likes + (liked ? -1 : 1) },
+              }
             : p,
         ),
       }));

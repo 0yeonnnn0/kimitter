@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as postService from '../../src/services/postService';
 import * as commentService from '../../src/services/commentService';
+import * as likeService from '../../src/services/likeService';
 import type { Post, Comment } from '../../src/types/models';
 
 function formatDate(dateStr: string): string {
@@ -51,6 +52,31 @@ export default function PostDetailScreen() {
       router.back();
     }
   }, [postId, router]);
+
+  const handleLikeToggle = async () => {
+    if (!post) return;
+    const newLikedState = !post.isLiked;
+    setPost({
+      ...post,
+      isLiked: newLikedState,
+      _count: {
+        ...post._count,
+        likes: post._count.likes + (newLikedState ? 1 : -1),
+      },
+    });
+    try {
+      await likeService.togglePostLike(post.id);
+    } catch {
+      setPost({
+        ...post,
+        isLiked: !newLikedState,
+        _count: {
+          ...post._count,
+          likes: post._count.likes + (newLikedState ? -1 : 1),
+        },
+      });
+    }
+  };
 
   const loadComments = useCallback(async () => {
     if (!postId) return;
@@ -151,6 +177,12 @@ export default function PostDetailScreen() {
                 ))}
               </View>
             ) : null}
+            <View style={styles.postActions}>
+              <TouchableOpacity style={styles.likeButton} onPress={handleLikeToggle}>
+                <Text style={styles.likeIcon}>{post.isLiked ? '❤️' : '🤍'}</Text>
+                <Text style={styles.likeCount}>{post._count.likes}</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.commentsLabel}>댓글 {comments.length}개</Text>
           </View>
         }
@@ -305,6 +337,24 @@ const styles = StyleSheet.create({
   tag: {
     color: '#007AFF',
     fontSize: 14,
+  },
+  postActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  likeIcon: {
+    fontSize: 20,
+  },
+  likeCount: {
+    fontSize: 15,
+    color: '#666',
+    fontWeight: '600',
   },
   commentsLabel: {
     fontSize: 15,

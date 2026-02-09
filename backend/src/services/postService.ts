@@ -9,6 +9,19 @@ const postInclude = {
   _count: { select: { likes: true, comments: true } },
 };
 
+const addIsLiked = async <T extends { id: number }>(
+  posts: T[],
+  userId: number,
+): Promise<(T & { isLiked: boolean })[]> => {
+  const postIds = posts.map((p) => p.id);
+  const likes = await prisma.like.findMany({
+    where: { userId, postId: { in: postIds }, commentId: null },
+    select: { postId: true },
+  });
+  const likedPostIds = new Set(likes.map((l) => l.postId));
+  return posts.map((p) => ({ ...p, isLiked: likedPostIds.has(p.id) }));
+};
+
 const getMediaType = (mimetype: string): MediaType => {
   if (mimetype === 'image/gif') return 'GIF';
   if (mimetype.startsWith('video/')) return 'VIDEO';
@@ -67,7 +80,7 @@ export const createPost = async (
   return post;
 };
 
-export const getPosts = async (page: number, limit: number) => {
+export const getPosts = async (page: number, limit: number, userId: number) => {
   const skip = (page - 1) * limit;
   const where = { deletedAt: null };
 
@@ -82,16 +95,18 @@ export const getPosts = async (page: number, limit: number) => {
     prisma.post.count({ where }),
   ]);
 
-  return { posts, total, page, limit, totalPages: Math.ceil(total / limit) };
+  const postsWithLikes = await addIsLiked(posts, userId);
+  return { posts: postsWithLikes, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
 
-export const getPostById = async (postId: number) => {
+export const getPostById = async (postId: number, userId: number) => {
   const post = await prisma.post.findFirst({
     where: { id: postId, deletedAt: null },
     include: postInclude,
   });
   if (!post) throw new NotFoundError('Post');
-  return post;
+  const [postWithLike] = await addIsLiked([post], userId);
+  return postWithLike;
 };
 
 export const updatePost = async (
@@ -137,6 +152,7 @@ export const deletePost = async (postId: number, userId: number, userRole: strin
 export const searchPosts = async (
   page: number,
   limit: number,
+  userId: number,
   q?: string,
   month?: string,
   mediaType?: string,
@@ -171,5 +187,6 @@ export const searchPosts = async (
     prisma.post.count({ where }),
   ]);
 
-  return { posts, total, page, limit, totalPages: Math.ceil(total / limit) };
+  const postsWithLikes = await addIsLiked(posts, userId);
+  return { posts: postsWithLikes, total, page, limit, totalPages: Math.ceil(total / limit) };
 };

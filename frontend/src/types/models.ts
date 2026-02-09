@@ -35,6 +35,7 @@ export interface Post {
   user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl'>;
   media: PostMedia[];
   tags: Array<{ tag: Tag }>;
+  isLiked: boolean;
   _count: {
     likes: number;
     comments: number;

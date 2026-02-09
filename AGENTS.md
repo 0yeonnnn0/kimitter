@@ -205,6 +205,10 @@ EXPO_PUBLIC_API_URL
 
 ---
 
+## Commit & Logging Rules
+- 모든 질문에 대한 답변은 하나의 커밋으로 저장한다.
+- `/log` 폴더를 만들어서 한 번의 답변에 대한 수정사항들을 전부 하나의 md 파일을 생성해서 기록한다.
+
 ## Do's and Don'ts
 
 ### Do

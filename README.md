@@ -219,7 +219,43 @@ npx tsc --noEmit
 
 ## 실사용 가이드
 
-### 1. 첫 번째 관리자 계정 만들기
+### 테스트 계정 (이미 생성됨)
+
+로컬 환경에서 즉시 테스트 가능한 계정:
+
+| 계정 유형 | 아이디 | 비밀번호 | 닉네임 | 역할 |
+|---------|--------|---------|--------|------|
+| **관리자** | `admin` | `admin1234` | 관리자 | ADMIN |
+| **일반 유저** | `testuser` | `test1234` | 테스트유저 | USER |
+
+**앱 실행 후 위 아이디/비밀번호로 바로 로그인하여 기능을 테스트할 수 있습니다.**
+
+#### 빠른 테스트 방법
+
+1. **백엔드 서버 시작**
+   ```bash
+   cd backend && npm run dev
+   # http://localhost:3000/api/health 응답 확인
+   ```
+
+2. **프론트엔드 앱 시작**
+   ```bash
+   cd frontend && npx expo start --ios
+   # (또는 --android)
+   ```
+
+3. **로그인**
+   - 앱 로그인 화면에서 `admin` / `admin1234` 입력
+   - 자동 로그인 → 홈 화면 이동
+
+4. **기능 테스트**
+   - 하단 **+** 탭: 게시물 작성 (텍스트/사진/태그)
+   - 🏠 홈: 게시물 목록, 좋아요, 댓글
+   - 🔍 검색: 게시물/태그 검색
+   - 🔔 활동: 알림 확인
+   - 👤 프로필: 내 정보, 로그아웃
+
+### 1. 추가 계정 만들기 (선택)
 
 백엔드 서버 시작 후 Prisma Studio로 초대 코드를 생성합니다:
 
@@ -315,3 +351,91 @@ eas build --platform android # Android 배포 빌드
 | JWT 이중 토큰 | Access(1h) + Refresh(7d) 보안/편의성 균형 |
 | 소프트 삭제 | 게시물/댓글에 `deletedAt` 컬럼으로 복구 가능 |
 | 낙관적 업데이트 | 좋아요 등 UI 즉각 반응, 실패 시 롤백 |
+
+---
+
+## 최근 업데이트 (2026-02-09)
+
+### 1. 네트워크 연결 문제 해결 ✅
+**문제**: iOS 시뮬레이터에서 `localhost` 접근 불가로 Network Error 발생  
+**해결**: 
+- `frontend/.env`의 API URL을 Mac의 실제 IP 주소로 변경
+- `EXPO_PUBLIC_API_URL=http://192.168.219.51:3000/api`
+- iOS 시뮬레이터는 `localhost`를 자기 자신으로 인식하므로 호스트 머신 IP 필요
+
+### 2. 사진 업로드 문제 해결 ✅
+**문제**: 
+- 15초 타임아웃으로 큰 이미지 업로드 실패
+- Network Error 발생 (요청이 서버에 도달하지 못함)
+- iOS HEIC 포맷 파일 처리 문제
+
+**해결**:
+- API 타임아웃 15초 → 60초로 증가 (`frontend/src/services/api.ts`)
+- `expo-image-manipulator` 설치 및 자동 이미지 압축 추가
+  - 업로드 전 1920px 너비로 리사이징
+  - JPEG 압축률 70% 적용 (HEIC → JPEG 자동 변환)
+  - 동영상은 원본 유지
+- 백엔드 Express body parser 크기 제한 증가 (100kb → 50mb)
+- 백엔드 Multer 필드명 `files` → `media`로 통일
+- 게시물 생성 시 `content` 필드를 선택적으로 변경 (이미지만 올리는 경우 대응)
+- 파일명 생성 로직 개선 (타임스탬프 + 인덱스로 고유성 보장)
+
+**파일**:
+- `frontend/src/services/api.ts` (timeout: 60000)
+- `frontend/app/(tabs)/create.tsx` (이미지 압축 + 파일명 생성)
+- `backend/src/app.ts` (body parser limit: 50mb)
+- `backend/src/routes/posts.ts` (필드명 통일)
+- `backend/src/validations/postValidation.ts` (content 선택적)
+
+### 3. 좋아요 기능 버그 수정 ✅
+**문제**: 
+- 좋아요 버튼 클릭 시 숫자가 잠시 1로 변경되었다가 0으로 되돌아감
+- 게시물 상세 화면에 좋아요 UI 없음
+
+**근본 원인**: 
+1. 백엔드가 각 게시물에 대한 현재 사용자의 좋아요 여부(`isLiked`)를 반환하지 않음
+2. 프론트엔드와 백엔드의 API 엔드포인트 불일치
+   - 프론트엔드: `/api/posts/:id/like` (POST/DELETE)
+   - 백엔드: `/api/likes/posts/:id` (토글 방식)
+3. 백엔드는 토글 방식인데 프론트엔드는 명시적 like/unlike 방식 사용
+
+**해결 방법:**
+- **백엔드**: 
+  - `addIsLiked()` 헬퍼 함수 추가하여 각 게시물에 사용자별 좋아요 상태 포함
+  - `getPosts`, `getPostById`, `searchPosts` 모두 `isLiked: boolean` 필드 반환
+  - `/api/posts/:id/like` 엔드포인트 추가 (프론트엔드 호환)
+- **프론트엔드**: 
+  - `Post` 인터페이스에 `isLiked` 필드 추가
+  - 홈 화면에서 로컬 state 제거, 서버 데이터 직접 사용
+  - `togglePostLike` API로 통일 (백엔드 토글 방식에 맞춤)
+  - 게시물 상세 화면에 좋아요 버튼 UI 추가
+
+**파일**:
+- `backend/src/services/postService.ts` (addIsLiked 헬퍼)
+- `backend/src/controllers/postController.ts` (userId 전달)
+- `backend/src/routes/posts.ts` (좋아요 엔드포인트 추가)
+- `frontend/src/types/models.ts` (Post.isLiked 추가)
+- `frontend/src/services/likeService.ts` (togglePostLike로 통일)
+- `frontend/src/stores/feedStore.ts` (토글 API 사용)
+- `frontend/app/(tabs)/index.tsx` (로컬 state 제거)
+- `frontend/app/[postId]/index.tsx` (좋아요 UI + 토글 API)
+
+### 4. 세션 복원 에러 핸들링 강화 ✅
+**변경**: `authStore.restoreSession`에 try/catch 추가
+- 손상되거나 만료된 토큰 자동 정리
+- 로그인 화면으로 깔끔한 리다이렉션
+
+**파일**: `frontend/src/stores/authStore.ts`
+
+---
+
+## 알려진 이슈 및 TODO
+
+- [ ] Push notification 실제 연동 (Expo token 등록/발송)
+- [ ] Admin UI 구현 (초대 코드 생성, 유저 관리)
+- [ ] 댓글/답글에 좋아요 UI 추가
+- [ ] NAS 배포 설정 (Docker, Nginx 리버스 프록시)
+- [ ] EAS Build 설정 (TestFlight/Play Store)
+- [ ] 동영상 재생 UI 개선
+- [ ] 프로필 이미지 업로드 기능
+- [ ] 게시물 수정 기능 프론트엔드 구현

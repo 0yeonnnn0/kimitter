@@ -20,7 +20,7 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
-    const result = await postService.getPosts(page, limit);
+    const result = await postService.getPosts(page, limit, req.userId!);
     res.json({
       success: true,
       data: result.posts,
@@ -33,7 +33,7 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
 
 export const getPostById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const post = await postService.getPostById(Number(req.params.postId));
+    const post = await postService.getPostById(Number(req.params.postId), req.userId!);
     res.json({ success: true, data: post });
   } catch (err) {
     next(err);
@@ -70,6 +70,7 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
     const result = await postService.searchPosts(
       page,
       limit,
+      req.userId!,
       req.query.q as string | undefined,
       req.query.month as string | undefined,
       req.query.mediaType as string | undefined,
