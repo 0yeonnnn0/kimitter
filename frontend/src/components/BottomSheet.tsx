@@ -7,9 +7,12 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  PanResponder,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const DISMISS_THRESHOLD = 120;
 
 interface BottomSheetProps {
   visible: boolean;
@@ -24,8 +27,34 @@ export default function BottomSheet({
   fullScreen = false,
   children,
 }: BottomSheetProps) {
+  const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        gesture.dy > 10 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderMove: (_, gesture) => {
+        if (gesture.dy > 0) {
+          translateY.setValue(gesture.dy);
+        }
+      },
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy > DISMISS_THRESHOLD) {
+          animateClose();
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            damping: 25,
+            stiffness: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     if (visible) {
@@ -71,9 +100,12 @@ export default function BottomSheet({
       <Animated.View
         style={[
           styles.sheet,
-          fullScreen ? styles.sheetFull : styles.sheetPartial,
+          fullScreen
+            ? { top: insets.top, borderTopLeftRadius: 16, borderTopRightRadius: 16 }
+            : styles.sheetPartial,
           { transform: [{ translateY }] },
         ]}
+        {...panResponder.panHandlers}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -106,11 +138,6 @@ const styles = StyleSheet.create({
   },
   sheetPartial: {
     maxHeight: SCREEN_HEIGHT * 0.9,
-  },
-  sheetFull: {
-    top: 0,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
   },
   handle: {
     width: 36,
