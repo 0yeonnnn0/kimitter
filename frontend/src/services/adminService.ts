@@ -5,11 +5,12 @@ interface InviteResult {
   invitation: {
     id: number;
     code: string;
-    email: string;
-    expiresAt: string;
+    email: string | null;
+    expiresAt: string | null;
     createdAt: string;
   };
   emailSent: boolean;
+  reused: boolean;
 }
 
 export const inviteByEmail = (email: string) =>

@@ -35,8 +35,13 @@ export default function InviteModal({ visible, onClose }: InviteModalProps) {
     setInviting(true);
     try {
       const { data } = await adminService.inviteByEmail(trimmed);
-      const { invitation, emailSent } = data.data;
-      if (emailSent) {
+      const { invitation, emailSent, reused } = data.data;
+      if (reused) {
+        Alert.alert(
+          '기존 초대 코드',
+          `이미 발급된 초대 코드가 있습니다.\n\n초대 코드: ${invitation.code}`,
+        );
+      } else if (emailSent) {
         Alert.alert('초대 완료', `${trimmed}로 초대 코드를 발송했습니다.`);
       } else {
         Alert.alert(

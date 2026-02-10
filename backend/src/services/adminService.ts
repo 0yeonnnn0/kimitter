@@ -26,7 +26,7 @@ export const inviteByEmail = async (adminId: number, email: string) => {
     where: { email, usedBy: null },
   });
   if (existing) {
-    throw new ValidationError('An unused invitation already exists for this email');
+    return { invitation: existing, emailSent: false, reused: true };
   }
 
   const code = generateInviteCode();
@@ -38,7 +38,7 @@ export const inviteByEmail = async (adminId: number, email: string) => {
 
   const emailSent = await sendInvitationEmail(email, code);
 
-  return { invitation, emailSent };
+  return { invitation, emailSent, reused: false };
 };
 
 export const getInvitationCodes = async () => {
