@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,6 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Animated,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -19,8 +15,7 @@ import type { User } from '../types/models';
 import { getFileUrl } from '../config/constants';
 import * as userService from '../services/userService';
 import { useAuthStore } from '../stores/authStore';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+import BottomSheet from './BottomSheet';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -30,8 +25,6 @@ interface EditProfileModalProps {
 }
 
 export default function EditProfileModal({ visible, user, onClose, onSaved }: EditProfileModalProps) {
-  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
   const { setUser } = useAuthStore();
 
   const [nickname, setNickname] = useState(user.nickname);
@@ -46,49 +39,8 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
       setUsername(user.username);
       setBio(user.bio ?? '');
       setImageUri(null);
-      Animated.parallel([
-        Animated.spring(translateY, {
-          toValue: 0,
-          damping: 25,
-          stiffness: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: SCREEN_HEIGHT,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
     }
-  }, [visible, user, translateY, backdropOpacity]);
-
-  const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: SCREEN_HEIGHT,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => onClose());
-  };
+  }, [visible, user]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -133,7 +85,7 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
       const { data } = await userService.updateMe(formData);
       await setUser(data.data);
       onSaved();
-      handleClose();
+      onClose();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '프로필 수정에 실패했습니다.';
       Alert.alert('오류', message);
@@ -144,119 +96,76 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
 
   const currentImageUrl = imageUri ?? (user.profileImageUrl ? getFileUrl(user.profileImageUrl) : null);
 
-  if (!visible) return null;
-
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Animated.View
-        style={[styles.backdrop, { opacity: backdropOpacity }]}
-      >
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={handleClose} />
-      </Animated.View>
+    <BottomSheet visible={visible} onClose={onClose}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onClose}>
+          <Text style={styles.cancelText}>취소</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>프로필 편집</Text>
+        <TouchableOpacity onPress={handleSave} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator size="small" color="#007AFF" />
+          ) : (
+            <Text style={styles.saveText}>완료</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
-      <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.keyboardView}
-        >
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleClose}>
-              <Text style={styles.cancelText}>취소</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>프로필 편집</Text>
-            <TouchableOpacity onPress={handleSave} disabled={saving}>
-              {saving ? (
-                <ActivityIndicator size="small" color="#007AFF" />
-              ) : (
-                <Text style={styles.saveText}>완료</Text>
-              )}
-            </TouchableOpacity>
+      <View style={styles.content}>
+        <TouchableOpacity style={styles.avatarSection} onPress={pickImage}>
+          {currentImageUrl ? (
+            <Image source={{ uri: currentImageUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>{nickname[0] ?? '?'}</Text>
+            </View>
+          )}
+          <View style={styles.cameraIcon}>
+            <Ionicons name="camera" size={14} color="#fff" />
           </View>
+        </TouchableOpacity>
 
-          <View style={styles.handle} />
+        <View style={styles.field}>
+          <Text style={styles.label}>이름</Text>
+          <TextInput
+            style={styles.input}
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder="이름을 입력하세요"
+            maxLength={20}
+          />
+        </View>
 
-          <View style={styles.content}>
-            <TouchableOpacity style={styles.avatarSection} onPress={pickImage}>
-              {currentImageUrl ? (
-                <Image source={{ uri: currentImageUrl }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{nickname[0] ?? '?'}</Text>
-                </View>
-              )}
-              <View style={styles.cameraIcon}>
-                <Ionicons name="camera" size={14} color="#fff" />
-              </View>
-            </TouchableOpacity>
+        <View style={styles.field}>
+          <Text style={styles.label}>아이디</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="아이디를 입력하세요"
+            autoCapitalize="none"
+            maxLength={30}
+          />
+        </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>이름</Text>
-              <TextInput
-                style={styles.input}
-                value={nickname}
-                onChangeText={setNickname}
-                placeholder="이름을 입력하세요"
-                maxLength={20}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>아이디</Text>
-              <TextInput
-                style={styles.input}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="아이디를 입력하세요"
-                autoCapitalize="none"
-                maxLength={30}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>소개</Text>
-              <TextInput
-                style={[styles.input, styles.bioInput]}
-                value={bio}
-                onChangeText={setBio}
-                placeholder="한줄 소개를 입력하세요"
-                multiline
-                maxLength={200}
-              />
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Animated.View>
-    </View>
+        <View style={styles.field}>
+          <Text style={styles.label}>소개</Text>
+          <TextInput
+            style={[styles.input, styles.bioInput]}
+            value={bio}
+            onChangeText={setBio}
+            placeholder="한줄 소개를 입력하세요"
+            multiline
+            maxLength={200}
+          />
+        </View>
+      </View>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: SCREEN_HEIGHT * 0.9,
-  },
-  keyboardView: {
-    flex: 0,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#e0e0e0',
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 4,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
