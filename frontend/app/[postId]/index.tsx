@@ -16,8 +16,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as postService from '../../src/services/postService';
 import * as commentService from '../../src/services/commentService';
 import * as likeService from '../../src/services/likeService';
+import { Ionicons } from '@expo/vector-icons';
 import type { Post, Comment } from '../../src/types/models';
 import { getFileUrl } from '../../src/config/constants';
+import MediaGallery from '../../src/components/MediaGallery';
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -161,14 +163,7 @@ export default function PostDetailScreen() {
               </View>
             </View>
             {post.content ? <Text style={styles.postContent}>{post.content}</Text> : null}
-            {post.media.map((m) => (
-              <Image
-                key={m.id}
-                source={{ uri: getFileUrl(m.fileUrl) }}
-                style={styles.postMedia}
-                resizeMode="cover"
-              />
-            ))}
+            <MediaGallery media={post.media} />
             {post.tags.length > 0 ? (
               <View style={styles.tags}>
                 {post.tags.map(({ tag }) => (
@@ -180,7 +175,11 @@ export default function PostDetailScreen() {
             ) : null}
             <View style={styles.postActions}>
               <TouchableOpacity style={styles.likeButton} onPress={handleLikeToggle}>
-                <Text style={styles.likeIcon}>{post.isLiked ? '❤️' : '🤍'}</Text>
+                <Ionicons
+                  name={post.isLiked ? 'heart' : 'heart-outline'}
+                  size={22}
+                  color={post.isLiked ? '#ff3b30' : '#666'}
+                />
                 <Text style={styles.likeCount}>{post._count.likes}</Text>
               </TouchableOpacity>
             </View>
@@ -324,10 +323,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     lineHeight: 24,
   },
-  postMedia: {
-    width: '100%',
-    height: 300,
-  },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -348,9 +343,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  likeIcon: {
-    fontSize: 20,
   },
   likeCount: {
     fontSize: 15,

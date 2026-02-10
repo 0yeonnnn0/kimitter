@@ -1,9 +1,15 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import type { Post } from '../types/models';
 import { getFileUrl } from '../config/constants';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import MediaGallery from './MediaGallery';
 
 interface PostCardProps {
   post: Post;
@@ -28,45 +34,34 @@ function formatDate(dateStr: string): string {
 export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCardProps) {
   const router = useRouter();
 
-  const handleLike = async () => {
-    try {
-      onLikeToggle?.(post.id, !isLiked);
-    } catch {
-      onLikeToggle?.(post.id, isLiked);
-    }
+  const handleLike = () => {
+    onLikeToggle?.(post.id, !isLiked);
   };
 
-  const firstMedia = post.media[0];
+  const navigateToDetail = () => {
+    router.push(`/${post.id}`);
+  };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.95}
-      onPress={() => router.push(`/${post.id}`)}
-    >
-      <View style={styles.header}>
-        {post.user.profileImageUrl ? (
-          <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
+    <View style={styles.card}>
+      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail}>
+        <View style={styles.header}>
+          {post.user.profileImageUrl ? (
+            <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
+            </View>
+          )}
+          <View style={styles.headerInfo}>
+            <Text style={styles.nickname}>{post.user.nickname}</Text>
+            <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
           </View>
-        )}
-        <View style={styles.headerInfo}>
-          <Text style={styles.nickname}>{post.user.nickname}</Text>
-          <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
         </View>
-      </View>
+        {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
+      </TouchableOpacity>
 
-      {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
-
-      {firstMedia ? (
-        <Image
-          source={{ uri: getFileUrl(firstMedia.fileUrl) }}
-          style={styles.media}
-          resizeMode="cover"
-        />
-      ) : null}
+      <MediaGallery media={post.media} />
 
       {post.tags.length > 0 ? (
         <View style={styles.tags}>
@@ -80,18 +75,19 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-          <Text style={styles.actionIcon}>{isLiked ? '❤️' : '🤍'}</Text>
+          <Ionicons
+            name={isLiked ? 'heart' : 'heart-outline'}
+            size={20}
+            color={isLiked ? '#ff3b30' : '#666'}
+          />
           <Text style={styles.actionCount}>{post._count.likes}</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => router.push(`/${post.id}`)}
-        >
-          <Text style={styles.actionIcon}>💬</Text>
+        <TouchableOpacity style={styles.actionButton} onPress={navigateToDetail}>
+          <Ionicons name="chatbubble-outline" size={18} color="#666" />
           <Text style={styles.actionCount}>{post._count.comments}</Text>
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -149,10 +145,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     lineHeight: 22,
   },
-  media: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
-  },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -174,9 +166,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  actionIcon: {
-    fontSize: 18,
   },
   actionCount: {
     fontSize: 14,

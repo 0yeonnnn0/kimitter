@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFeedStore } from '../../src/stores/feedStore';
 import * as postService from '../../src/services/postService';
@@ -170,7 +171,8 @@ export default function CreateScreen() {
         ) : null}
 
         <TouchableOpacity style={styles.mediaButton} onPress={pickMedia}>
-          <Text style={styles.mediaButtonText}>📷 사진/동영상 추가</Text>
+          <Ionicons name="camera-outline" size={20} color="#666" />
+          <Text style={styles.mediaButtonText}>사진/동영상 추가</Text>
         </TouchableOpacity>
 
         <View style={styles.tagSection}>
@@ -282,6 +284,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   mediaButton: {
+    flexDirection: 'row',
     marginHorizontal: 16,
     marginTop: 8,
     paddingVertical: 12,
@@ -289,6 +292,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   mediaButtonText: {
     color: '#666',

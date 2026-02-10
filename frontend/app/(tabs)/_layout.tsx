@@ -1,16 +1,22 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface TabIconProps {
   focused: boolean;
-  emoji: string;
+  iconName: string;
+  iconNameFocused: string;
   label: string;
 }
 
-function TabIcon({ focused, emoji, label }: TabIconProps) {
+function TabIcon({ focused, iconName, iconNameFocused, label }: TabIconProps) {
   return (
     <View style={styles.tabItem}>
-      <Text style={[styles.emoji, focused && styles.emojiFocused]}>{emoji}</Text>
+      <Ionicons
+        name={(focused ? iconNameFocused : iconName) as React.ComponentProps<typeof Ionicons>['name']}
+        size={24}
+        color={focused ? '#007AFF' : '#999'}
+      />
       <Text style={[styles.label, focused && styles.labelFocused]}>{label}</Text>
     </View>
   );
@@ -29,7 +35,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="🏠" label="홈" />
+            <TabIcon focused={focused} iconName="home-outline" iconNameFocused="home" label="홈" />
           ),
         }}
       />
@@ -37,7 +43,7 @@ export default function TabsLayout() {
         name="search"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="🔍" label="검색" />
+            <TabIcon focused={focused} iconName="search-outline" iconNameFocused="search" label="검색" />
           ),
         }}
       />
@@ -45,7 +51,7 @@ export default function TabsLayout() {
         name="create"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="➕" label="작성" />
+            <TabIcon focused={focused} iconName="add-circle-outline" iconNameFocused="add-circle" label="작성" />
           ),
         }}
       />
@@ -53,7 +59,7 @@ export default function TabsLayout() {
         name="activity"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="🔔" label="활동" />
+            <TabIcon focused={focused} iconName="notifications-outline" iconNameFocused="notifications" label="활동" />
           ),
         }}
       />
@@ -61,7 +67,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="👤" label="프로필" />
+            <TabIcon focused={focused} iconName="person-outline" iconNameFocused="person" label="프로필" />
           ),
         }}
       />
@@ -79,13 +85,6 @@ const styles = StyleSheet.create({
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 22,
-    opacity: 0.5,
-  },
-  emojiFocused: {
-    opacity: 1,
   },
   label: {
     fontSize: 10,
