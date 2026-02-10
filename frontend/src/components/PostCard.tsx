@@ -77,13 +77,13 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
           <Ionicons
             name={isLiked ? 'heart' : 'heart-outline'}
-            size={20}
-            color={isLiked ? '#ff3b30' : '#666'}
+            size={22}
+            color={isLiked ? '#ff3b30' : '#333'}
           />
           <Text style={styles.actionCount}>{post._count.likes}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={navigateToDetail}>
-          <Ionicons name="chatbubble-outline" size={18} color="#666" />
+          <Ionicons name="chatbubble-outline" size={20} color="#333" />
           <Text style={styles.actionCount}>{post._count.comments}</Text>
         </TouchableOpacity>
       </View>

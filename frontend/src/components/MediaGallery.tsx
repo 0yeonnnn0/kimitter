@@ -13,8 +13,12 @@ import type { PostMedia } from '../types/models';
 import { getFileUrl } from '../config/constants';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const THUMB_WIDTH = 160;
-const THUMB_HEIGHT = 100;
+const HORIZONTAL_PADDING = 16;
+const IMAGE_GAP = 8;
+const MULTI_IMAGE_WIDTH = Math.round((SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - IMAGE_GAP) / 2);
+const MULTI_IMAGE_HEIGHT = Math.round(MULTI_IMAGE_WIDTH * 1.5);
+const SINGLE_IMAGE_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
+const SINGLE_IMAGE_HEIGHT = Math.round(SINGLE_IMAGE_WIDTH * 0.75);
 
 interface MediaGalleryProps {
   media: PostMedia[];
@@ -24,6 +28,8 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   if (media.length === 0) return null;
+
+  const isSingle = media.length === 1;
 
   return (
     <View>
@@ -40,10 +46,7 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
           >
             <Image
               source={{ uri: getFileUrl(m.fileUrl) }}
-              style={[
-                styles.thumbnail,
-                media.length === 1 && styles.thumbnailSingle,
-              ]}
+              style={isSingle ? styles.thumbnailSingle : styles.thumbnailMulti}
               resizeMode="cover"
             />
           </TouchableOpacity>
@@ -91,17 +94,18 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    gap: IMAGE_GAP,
   },
-  thumbnail: {
-    width: THUMB_WIDTH,
-    height: THUMB_HEIGHT,
-    borderRadius: 10,
+  thumbnailMulti: {
+    width: MULTI_IMAGE_WIDTH,
+    height: MULTI_IMAGE_HEIGHT,
+    borderRadius: 12,
   },
   thumbnailSingle: {
-    width: THUMB_WIDTH * 1.5,
-    height: THUMB_HEIGHT * 1.5,
+    width: SINGLE_IMAGE_WIDTH,
+    height: SINGLE_IMAGE_HEIGHT,
+    borderRadius: 12,
   },
   modalOverlay: {
     flex: 1,
