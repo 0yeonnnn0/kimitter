@@ -1,21 +1,74 @@
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   StyleSheet,
+  FlatList,
   Alert,
   ActivityIndicator,
-  Image,
-  ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
+import * as userService from '../../src/services/userService';
+import * as likeService from '../../src/services/likeService';
+import { getFileUrl } from '../../src/config/constants';
+import type { Post } from '../../src/types/models';
+import PostCard from '../../src/components/PostCard';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = async () => {
+  const loadPosts = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data } = await userService.getUserPosts(user.id);
+      setPosts(data.data.posts ?? data.data ?? []);
+    } catch {
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+
+  const handleLikeToggle = async (postId: number, liked: boolean) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              isLiked: liked,
+              _count: { ...p._count, likes: p._count.likes + (liked ? 1 : -1) },
+            }
+          : p,
+      ),
+    );
+    try {
+      await likeService.togglePostLike(postId);
+    } catch {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                isLiked: !liked,
+                _count: { ...p._count, likes: p._count.likes + (liked ? -1 : 1) },
+              }
+            : p,
+        ),
+      );
+    }
+  };
+
+  const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
       { text: '취소', style: 'cancel' },
       {
@@ -36,79 +89,99 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>프로필</Text>
+        <View style={styles.headerSide} />
+        <Text style={styles.headerTitle}>{user.nickname}</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.headerSide} disabled={loggingOut}>
+          {loggingOut ? (
+            <ActivityIndicator size="small" color="#ff3b30" />
+          ) : (
+            <Ionicons name="log-out-outline" size={24} color="#ff3b30" />
+          )}
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.profileSection}>
-        {user.profileImageUrl ? (
-          <Image source={{ uri: user.profileImageUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{user.nickname[0]}</Text>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => String(item.id)}
+        ListHeaderComponent={
+          <View style={styles.profileSection}>
+            {user.profileImageUrl ? (
+              <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>{user.nickname[0]}</Text>
+              </View>
+            )}
+            <Text style={styles.nickname}>{user.nickname}</Text>
+            <Text style={styles.username}>@{user.username}</Text>
+            {user.role === 'ADMIN' ? (
+              <View style={styles.adminBadge}>
+                <Text style={styles.adminBadgeText}>관리자</Text>
+              </View>
+            ) : null}
+            <View style={styles.statsRow}>
+              <Text style={styles.statText}>게시물 {posts.length}개</Text>
+            </View>
+            <TouchableOpacity style={styles.editButton}>
+              <Text style={styles.editButtonText}>프로필 편집</Text>
+            </TouchableOpacity>
           </View>
+        }
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            isLiked={item.isLiked}
+            onLikeToggle={handleLikeToggle}
+          />
         )}
-        <Text style={styles.nickname}>{user.nickname}</Text>
-        <Text style={styles.username}>@{user.username}</Text>
-        {user.role === 'ADMIN' ? (
-          <View style={styles.adminBadge}>
-            <Text style={styles.adminBadgeText}>관리자</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>계정 정보</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>가입일</Text>
-          <Text style={styles.infoValue}>
-            {new Date(user.createdAt).toLocaleDateString('ko-KR')}
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={[styles.logoutButton, loggingOut && styles.logoutButtonDisabled]}
-        onPress={handleLogout}
-        disabled={loggingOut}
-      >
-        {loggingOut ? (
-          <ActivityIndicator color="#ff3b30" />
-        ) : (
-          <Text style={styles.logoutButtonText}>로그아웃</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.emptyContainer}>
+              <ActivityIndicator size="large" />
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>아직 게시물이 없습니다.</Text>
+            </View>
+          )
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  content: {
-    paddingBottom: 40,
+    backgroundColor: '#fff',
   },
   header: {
-    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 56,
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fff',
+  },
+  headerSide: {
+    width: 32,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '600',
     color: '#1a1a1a',
   },
   profileSection: {
-    backgroundColor: '#fff',
     alignItems: 'center',
-    paddingVertical: 32,
-    marginBottom: 16,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#f0f0f0',
   },
   avatar: {
     width: 80,
@@ -131,13 +204,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   nickname: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 4,
   },
   username: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#666',
   },
   adminBadge: {
@@ -152,47 +225,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  section: {
-    backgroundColor: '#fff',
-    marginBottom: 16,
-    paddingHorizontal: 16,
+  statsRow: {
+    marginTop: 12,
   },
-  sectionTitle: {
-    fontSize: 13,
-    color: '#999',
-    paddingVertical: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  infoLabel: {
-    fontSize: 15,
-    color: '#333',
-  },
-  infoValue: {
-    fontSize: 15,
+  statText: {
+    fontSize: 14,
     color: '#666',
   },
-  logoutButton: {
-    margin: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+  editButton: {
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 32,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ff3b30',
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
   },
-  logoutButtonDisabled: {
-    opacity: 0.6,
-  },
-  logoutButtonText: {
-    color: '#ff3b30',
-    fontSize: 16,
+  editButtonText: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#999',
   },
 });
