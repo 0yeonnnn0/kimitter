@@ -48,7 +48,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail} style={styles.header}>
+      <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.header}>
         <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
           {post.user.profileImageUrl ? (
             <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
@@ -72,17 +72,17 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
       <MediaGallery media={post.media} />
 
       {post.tags.length > 0 ? (
-        <View style={styles.tags}>
+        <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.tags}>
           {post.tags.map(({ tag }) => (
             <Text key={tag.id} style={styles.tag}>
               #{tag.name}
             </Text>
           ))}
-        </View>
+        </TouchableOpacity>
       ) : null}
 
-      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail} style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+      <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.actions}>
+        <TouchableOpacity activeOpacity={0.7} style={styles.actionButton} onPress={handleLike}>
           <Ionicons
             name={isLiked ? 'heart' : 'heart-outline'}
             size={22}
@@ -90,7 +90,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
           />
           <Text style={styles.actionCount}>{post._count.likes}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={navigateToDetail}>
+        <TouchableOpacity activeOpacity={0.7} style={styles.actionButton} onPress={navigateToDetail}>
           <Ionicons name="chatbubble-outline" size={20} color="#333" />
           <Text style={styles.actionCount}>{post._count.comments}</Text>
         </TouchableOpacity>
