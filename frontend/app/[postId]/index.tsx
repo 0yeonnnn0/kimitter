@@ -138,10 +138,11 @@ export default function PostDetailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>← 뒤로</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>게시물</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <FlatList
@@ -267,21 +268,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 56,
     paddingBottom: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    gap: 16,
   },
   backButton: {
-    fontSize: 16,
-    color: '#007AFF',
+    width: 32,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a1a1a',
+  },
+  headerSpacer: {
+    width: 32,
   },
   postHeader: {
     flexDirection: 'row',

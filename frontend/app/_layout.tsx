@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/stores/authStore';
 
@@ -27,7 +27,12 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="auto" />
-      <Slot />
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="[postId]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="user" />
+      </Stack>
     </>
   );
 }
