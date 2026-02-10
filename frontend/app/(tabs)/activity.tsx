@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNotificationStore } from '../../src/stores/notificationStore';
@@ -35,9 +35,20 @@ export default function ActivityScreen() {
   const { notifications, unreadCount, fetchUnread, markRead, markAllRead } =
     useNotificationStore();
 
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     fetchUnread();
   }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchUnread();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchUnread]);
 
   const router = useRouter();
 
@@ -64,6 +75,9 @@ export default function ActivityScreen() {
       <FlatList
         data={notifications}
         keyExtractor={(item) => String(item.id)}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.item, !item.isRead && styles.itemUnread]}
