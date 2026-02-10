@@ -11,7 +11,7 @@ router.get('/me', userController.getMe);
 router.put('/me', upload.single('profileImage'), userController.updateMe);
 router.get('/:userId', userController.getUser);
 router.get('/:userId/posts', userController.getUserPosts);
-router.get('/:userId/comments', userController.getUserComments);
-router.get('/:userId/media', userController.getUserMedia);
+router.get('/:userId/replies', userController.getUserRepliedPosts);
+router.get('/:userId/media-posts', userController.getUserMediaPosts);
 
 export default router;

@@ -1,74 +1,23 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
-import * as userService from '../../src/services/userService';
-import * as likeService from '../../src/services/likeService';
 import { getFileUrl } from '../../src/config/constants';
-import type { Post } from '../../src/types/models';
-import PostCard from '../../src/components/PostCard';
+import ProfileTabs from '../../src/components/ProfileTabs';
 import EditProfileModal from '../../src/components/EditProfileModal';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-
-  const loadPosts = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { data } = await userService.getUserPosts(user.id);
-      setPosts(data.data.posts ?? data.data ?? []);
-    } catch {
-      setPosts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
-
-  const handleLikeToggle = async (postId: number, liked: boolean) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              isLiked: liked,
-              _count: { ...p._count, likes: p._count.likes + (liked ? 1 : -1) },
-            }
-          : p,
-      ),
-    );
-    try {
-      await likeService.togglePostLike(postId);
-    } catch {
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                isLiked: !liked,
-                _count: { ...p._count, likes: p._count.likes + (liked ? -1 : 1) },
-              }
-            : p,
-        ),
-      );
-    }
-  };
 
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
@@ -90,6 +39,35 @@ export default function ProfileScreen() {
 
   if (!user) return null;
 
+  const profileHeader = (
+    <View style={styles.profileSection}>
+      <View style={styles.profileRow}>
+        <View style={styles.profileInfo}>
+          <Text style={styles.nickname}>{user.nickname}</Text>
+          <Text style={styles.username}>@{user.username}</Text>
+          {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+        </View>
+        {user.profileImageUrl ? (
+          <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{user.nickname[0]}</Text>
+          </View>
+        )}
+      </View>
+      {user.role === 'ADMIN' ? (
+        <View style={styles.badgeRow}>
+          <View style={styles.adminBadge}>
+            <Text style={styles.adminBadgeText}>관리자</Text>
+          </View>
+        </View>
+      ) : null}
+      <TouchableOpacity style={styles.editButton} onPress={() => setEditModalVisible(true)}>
+        <Text style={styles.editButtonText}>프로필 편집</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -104,66 +82,14 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => String(item.id)}
-        ListHeaderComponent={
-          <View style={styles.profileSection}>
-            <View style={styles.profileRow}>
-              <View style={styles.profileInfo}>
-                <Text style={styles.nickname}>{user.nickname}</Text>
-                <Text style={styles.username}>@{user.username}</Text>
-                {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
-              </View>
-              {user.profileImageUrl ? (
-                <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{user.nickname[0]}</Text>
-                </View>
-              )}
-            </View>
-            {user.role === 'ADMIN' ? (
-              <View style={styles.badgeRow}>
-                <View style={styles.adminBadge}>
-                  <Text style={styles.adminBadgeText}>관리자</Text>
-                </View>
-              </View>
-            ) : null}
-            <Text style={styles.statText}>게시물 {posts.length}개</Text>
-            <TouchableOpacity style={styles.editButton} onPress={() => setEditModalVisible(true)}>
-              <Text style={styles.editButtonText}>프로필 편집</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            isLiked={item.isLiked}
-            onLikeToggle={handleLikeToggle}
-          />
-        )}
-        ListEmptyComponent={
-          loading ? (
-            <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" />
-            </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>아직 게시물이 없습니다.</Text>
-            </View>
-          )
-        }
-      />
+      <ProfileTabs userId={user.id} headerComponent={profileHeader} />
 
-      {user ? (
-        <EditProfileModal
-          visible={editModalVisible}
-          user={user}
-          onClose={() => setEditModalVisible(false)}
-          onSaved={loadPosts}
-        />
-      ) : null}
+      <EditProfileModal
+        visible={editModalVisible}
+        user={user}
+        onClose={() => setEditModalVisible(false)}
+        onSaved={() => {}}
+      />
     </View>
   );
 }
@@ -196,8 +122,6 @@ const styles = StyleSheet.create({
   profileSection: {
     paddingHorizontal: 16,
     paddingVertical: 20,
-    borderBottomWidth: 8,
-    borderBottomColor: '#f0f0f0',
   },
   profileRow: {
     flexDirection: 'row',
@@ -257,11 +181,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  statText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 14,
-  },
   editButton: {
     marginTop: 16,
     paddingVertical: 10,
@@ -274,13 +193,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1a1a1a',
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#999',
   },
 });

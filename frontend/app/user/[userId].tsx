@@ -4,34 +4,27 @@ import {
   Text,
   Image,
   StyleSheet,
-  FlatList,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as userService from '../../src/services/userService';
-import * as likeService from '../../src/services/likeService';
 import { getFileUrl } from '../../src/config/constants';
-import type { User, Post } from '../../src/types/models';
-import PostCard from '../../src/components/PostCard';
+import type { User } from '../../src/types/models';
+import ProfileTabs from '../../src/components/ProfileTabs';
 
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
+  const loadUser = useCallback(async () => {
     if (!userId) return;
     try {
-      const [userRes, postsRes] = await Promise.all([
-        userService.getUser(Number(userId)),
-        userService.getUserPosts(Number(userId)),
-      ]);
-      setUser(userRes.data.data);
-      setPosts(postsRes.data.data.posts ?? postsRes.data.data ?? []);
+      const res = await userService.getUser(Number(userId));
+      setUser(res.data.data);
     } catch {
       setUser(null);
     } finally {
@@ -40,37 +33,8 @@ export default function UserProfileScreen() {
   }, [userId]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleLikeToggle = async (postId: number, liked: boolean) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              isLiked: liked,
-              _count: { ...p._count, likes: p._count.likes + (liked ? 1 : -1) },
-            }
-          : p,
-      ),
-    );
-    try {
-      await likeService.togglePostLike(postId);
-    } catch {
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                isLiked: !liked,
-                _count: { ...p._count, likes: p._count.likes + (liked ? -1 : 1) },
-              }
-            : p,
-        ),
-      );
-    }
-  };
+    loadUser();
+  }, [loadUser]);
 
   if (loading) {
     return (
@@ -88,6 +52,32 @@ export default function UserProfileScreen() {
     );
   }
 
+  const profileHeader = (
+    <View style={styles.profileSection}>
+      <View style={styles.profileRow}>
+        <View style={styles.profileInfo}>
+          <Text style={styles.nickname}>{user.nickname}</Text>
+          <Text style={styles.username}>@{user.username}</Text>
+          {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+        </View>
+        {user.profileImageUrl ? (
+          <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{user.nickname[0]}</Text>
+          </View>
+        )}
+      </View>
+      {user.role === 'ADMIN' ? (
+        <View style={styles.badgeRow}>
+          <View style={styles.adminBadge}>
+            <Text style={styles.adminBadgeText}>관리자</Text>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -98,48 +88,7 @@ export default function UserProfileScreen() {
         <View style={styles.backButton} />
       </View>
 
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => String(item.id)}
-        ListHeaderComponent={
-          <View style={styles.profileSection}>
-            <View style={styles.profileRow}>
-              <View style={styles.profileInfo}>
-                <Text style={styles.nickname}>{user.nickname}</Text>
-                <Text style={styles.username}>@{user.username}</Text>
-                {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
-              </View>
-              {user.profileImageUrl ? (
-                <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{user.nickname[0]}</Text>
-                </View>
-              )}
-            </View>
-            {user.role === 'ADMIN' ? (
-              <View style={styles.badgeRow}>
-                <View style={styles.adminBadge}>
-                  <Text style={styles.adminBadgeText}>관리자</Text>
-                </View>
-              </View>
-            ) : null}
-            <Text style={styles.statText}>게시물 {posts.length}개</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            isLiked={item.isLiked}
-            onLikeToggle={handleLikeToggle}
-          />
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>아직 게시물이 없습니다.</Text>
-          </View>
-        }
-      />
+      <ProfileTabs userId={user.id} headerComponent={profileHeader} />
     </View>
   );
 }
@@ -182,8 +131,6 @@ const styles = StyleSheet.create({
   profileSection: {
     paddingHorizontal: 16,
     paddingVertical: 20,
-    borderBottomWidth: 8,
-    borderBottomColor: '#f0f0f0',
   },
   profileRow: {
     flexDirection: 'row',
@@ -242,18 +189,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
-  },
-  statText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 14,
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#999',
   },
 });

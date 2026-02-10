@@ -44,23 +44,23 @@ export const getUserPosts = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const getUserComments = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserRepliedPosts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
-    const result = await userService.getUserComments(Number(req.params.userId), page, limit);
-    res.json({ success: true, data: result.comments, pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: result.totalPages } });
+    const result = await userService.getUserRepliedPosts(Number(req.params.userId), page, limit, req.userId!);
+    res.json({ success: true, data: result.posts, pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: result.totalPages } });
   } catch (err) {
     next(err);
   }
 };
 
-export const getUserMedia = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserMediaPosts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
-    const result = await userService.getUserMedia(Number(req.params.userId), page, limit);
-    res.json({ success: true, data: result.media, pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: result.totalPages } });
+    const result = await userService.getUserMediaPosts(Number(req.params.userId), page, limit, req.userId!);
+    res.json({ success: true, data: result.posts, pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: result.totalPages } });
   } catch (err) {
     next(err);
   }

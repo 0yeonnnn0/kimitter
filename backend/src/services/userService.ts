@@ -67,50 +67,99 @@ export const getUserPosts = async (
     prisma.post.count({ where }),
   ]);
 
-  const postIds = posts.map((p) => p.id);
-  const likes = await prisma.like.findMany({
-    where: { userId: requesterId, postId: { in: postIds }, commentId: null },
-    select: { postId: true },
-  });
-  const likedPostIds = new Set(likes.map((l) => l.postId));
+  const likedPostIds = await getLikedPostIds(
+    requesterId,
+    posts.map((p) => p.id),
+  );
   const postsWithLikes = posts.map((p) => ({ ...p, isLiked: likedPostIds.has(p.id) }));
 
   return { posts: postsWithLikes, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
 
-export const getUserComments = async (userId: number, page: number, limit: number) => {
-  const skip = (page - 1) * limit;
-  const where = { userId, deletedAt: null };
+export const getUserRepliedPosts = async (
+  userId: number,
+  page: number,
+  limit: number,
+  requesterId: number,
+) => {
+  const commentedPostIds = await prisma.comment.findMany({
+    where: { userId, deletedAt: null },
+    select: { postId: true },
+    distinct: ['postId'],
+  });
+  const postIds = commentedPostIds.map((c) => c.postId);
 
-  const [comments, total] = await Promise.all([
-    prisma.comment.findMany({
+  const skip = (page - 1) * limit;
+  const where = { id: { in: postIds }, deletedAt: null };
+
+  const [posts, total] = await Promise.all([
+    prisma.post.findMany({
       where,
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        post: { select: { id: true, content: true } },
+        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+        media: { orderBy: { position: 'asc' as const } },
+        tags: { include: { tag: true } },
+        _count: { select: { likes: true, comments: true } },
       },
     }),
-    prisma.comment.count({ where }),
+    prisma.post.count({ where }),
   ]);
 
-  return { comments, total, page, limit, totalPages: Math.ceil(total / limit) };
+  const likedPostIds = await getLikedPostIds(
+    requesterId,
+    posts.map((p) => p.id),
+  );
+  const postsWithLikes = posts.map((p) => ({ ...p, isLiked: likedPostIds.has(p.id) }));
+
+  return { posts: postsWithLikes, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
 
-export const getUserMedia = async (userId: number, page: number, limit: number) => {
+export const getUserMediaPosts = async (
+  userId: number,
+  page: number,
+  limit: number,
+  requesterId: number,
+) => {
   const skip = (page - 1) * limit;
+  const where = {
+    userId,
+    deletedAt: null,
+    media: { some: {} },
+  };
 
-  const [media, total] = await Promise.all([
-    prisma.postMedia.findMany({
-      where: { post: { userId, deletedAt: null } },
+  const [posts, total] = await Promise.all([
+    prisma.post.findMany({
+      where,
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
-      include: { post: { select: { id: true } } },
+      include: {
+        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+        media: { orderBy: { position: 'asc' as const } },
+        tags: { include: { tag: true } },
+        _count: { select: { likes: true, comments: true } },
+      },
     }),
-    prisma.postMedia.count({ where: { post: { userId, deletedAt: null } } }),
+    prisma.post.count({ where }),
   ]);
 
-  return { media, total, page, limit, totalPages: Math.ceil(total / limit) };
+  const likedPostIds = await getLikedPostIds(
+    requesterId,
+    posts.map((p) => p.id),
+  );
+  const postsWithLikes = posts.map((p) => ({ ...p, isLiked: likedPostIds.has(p.id) }));
+
+  return { posts: postsWithLikes, total, page, limit, totalPages: Math.ceil(total / limit) };
+};
+
+const getLikedPostIds = async (userId: number, postIds: number[]) => {
+  if (postIds.length === 0) return new Set<number>();
+  const likes = await prisma.like.findMany({
+    where: { userId, postId: { in: postIds }, commentId: null },
+    select: { postId: true },
+  });
+  return new Set(likes.map((l) => l.postId));
 };
