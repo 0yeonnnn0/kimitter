@@ -107,23 +107,28 @@ export default function ProfileScreen() {
         keyExtractor={(item) => String(item.id)}
         ListHeaderComponent={
           <View style={styles.profileSection}>
-            {user.profileImageUrl ? (
-              <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{user.nickname[0]}</Text>
+            <View style={styles.profileRow}>
+              <View style={styles.profileInfo}>
+                <Text style={styles.nickname}>{user.nickname}</Text>
+                <Text style={styles.username}>@{user.username}</Text>
+                {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
               </View>
-            )}
-            <Text style={styles.nickname}>{user.nickname}</Text>
-            <Text style={styles.username}>@{user.username}</Text>
+              {user.profileImageUrl ? (
+                <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>{user.nickname[0]}</Text>
+                </View>
+              )}
+            </View>
             {user.role === 'ADMIN' ? (
-              <View style={styles.adminBadge}>
-                <Text style={styles.adminBadgeText}>관리자</Text>
+              <View style={styles.badgeRow}>
+                <View style={styles.adminBadge}>
+                  <Text style={styles.adminBadgeText}>관리자</Text>
+                </View>
               </View>
             ) : null}
-            <View style={styles.statsRow}>
-              <Text style={styles.statText}>게시물 {posts.length}개</Text>
-            </View>
+            <Text style={styles.statText}>게시물 {posts.length}개</Text>
             <TouchableOpacity style={styles.editButton}>
               <Text style={styles.editButtonText}>프로필 편집</Text>
             </TouchableOpacity>
@@ -178,68 +183,81 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   profileSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
     borderBottomWidth: 8,
     borderBottomColor: '#f0f0f0',
   },
+  profileRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  profileInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
   avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
   avatarText: {
     color: '#fff',
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
   },
   nickname: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   username: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: '#999',
+  },
+  bio: {
+    fontSize: 15,
+    color: '#333',
+    marginTop: 10,
+    lineHeight: 21,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    marginTop: 8,
   },
   adminBadge: {
-    marginTop: 8,
     backgroundColor: '#ff9500',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   adminBadgeText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
   },
-  statsRow: {
-    marginTop: 12,
-  },
   statText: {
     fontSize: 14,
-    color: '#666',
+    color: '#999',
+    marginTop: 14,
   },
   editButton: {
     marginTop: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 32,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
+    alignItems: 'center',
   },
   editButtonText: {
     fontSize: 14,

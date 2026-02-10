@@ -5,6 +5,7 @@ const userSelect = {
   id: true,
   username: true,
   nickname: true,
+  bio: true,
   profileImageUrl: true,
   role: true,
   isActive: true,
@@ -24,7 +25,7 @@ export const getCurrentUser = async (userId: number) => {
 
 export const updateUser = async (
   userId: number,
-  data: { nickname?: string; profileImageUrl?: string },
+  data: { nickname?: string; bio?: string; profileImageUrl?: string },
 ) => {
   return prisma.user.update({
     where: { id: userId },

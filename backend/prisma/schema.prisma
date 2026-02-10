@@ -38,6 +38,7 @@ model User {
   username        String    @unique @db.VarChar(50)
   passwordHash    String    @map("password_hash") @db.VarChar(255)
   nickname        String    @db.VarChar(100)
+  bio             String?   @db.VarChar(200)
   profileImageUrl String?   @map("profile_image_url") @db.VarChar(255)
   role            Role      @default(USER)
   isActive        Boolean   @default(true) @map("is_active")

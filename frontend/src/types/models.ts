@@ -2,6 +2,7 @@ export interface User {
   id: number;
   username: string;
   nickname: string;
+  bio: string | null;
   profileImageUrl: string | null;
   role: 'USER' | 'ADMIN';
   isActive: boolean;
