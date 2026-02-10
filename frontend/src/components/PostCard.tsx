@@ -48,7 +48,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
+      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail} style={styles.header}>
         <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
           {post.user.profileImageUrl ? (
             <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
@@ -64,7 +64,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
           </TouchableOpacity>
           <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
       <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail}>
         {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
       </TouchableOpacity>
@@ -81,7 +81,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
         </View>
       ) : null}
 
-      <View style={styles.actions}>
+      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail} style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
           <Ionicons
             name={isLiked ? 'heart' : 'heart-outline'}
@@ -94,7 +94,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
           <Ionicons name="chatbubble-outline" size={20} color="#333" />
           <Text style={styles.actionCount}>{post._count.comments}</Text>
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
