@@ -77,45 +77,48 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
 
   if (media.length === 0) return null;
 
+  const firstSize = sizes[media[0].id];
+  const rowHeight = firstSize
+    ? clampHeight(displayWidth, firstSize.width, firstSize.height, maxHeight)
+    : null;
+
   return (
     <View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
-      >
-        {media.map((m, index) => {
-          const size = sizes[m.id];
-          const height = size
-            ? clampHeight(displayWidth, size.width, size.height, maxHeight)
-            : Math.round(displayWidth * 1.2);
-
-          return (
+      {rowHeight === null ? (
+        <View
+          style={[
+            styles.placeholder,
+            {
+              width: displayWidth,
+              height: Math.round(displayWidth * 1.2),
+              borderRadius: 12,
+              marginHorizontal: HORIZONTAL_PADDING,
+            },
+          ]}
+        >
+          <ActivityIndicator size="small" color="#999" />
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContainer}
+        >
+          {media.map((m, index) => (
             <TouchableOpacity
               key={m.id}
               activeOpacity={0.85}
               onPress={() => setSelectedIndex(index)}
             >
-              {!size ? (
-                <View
-                  style={[
-                    styles.placeholder,
-                    { width: displayWidth, height, borderRadius: 12 },
-                  ]}
-                >
-                  <ActivityIndicator size="small" color="#999" />
-                </View>
-              ) : (
-                <Image
-                  source={{ uri: getFileUrl(m.fileUrl) }}
-                  style={{ width: displayWidth, height, borderRadius: 12 }}
-                  resizeMode="cover"
-                />
-              )}
+              <Image
+                source={{ uri: getFileUrl(m.fileUrl) }}
+                style={{ width: displayWidth, height: rowHeight, borderRadius: 12 }}
+                resizeMode="cover"
+              />
             </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
 
       <Modal visible={selectedIndex !== null} transparent animationType="fade">
         <View style={styles.modalOverlay}>
