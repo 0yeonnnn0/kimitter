@@ -15,7 +15,7 @@ function TabIcon({ focused, iconName, iconNameFocused }: TabIconProps) {
     <View style={styles.tabItem}>
       <Ionicons
         name={(focused ? iconNameFocused : iconName) as React.ComponentProps<typeof Ionicons>['name']}
-        size={26}
+        size={30}
         color={focused ? '#000' : '#999'}
       />
     </View>
@@ -92,8 +92,8 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 60,
-    paddingBottom: 4,
+    height: 80,
+    paddingBottom: 16,
     backgroundColor: '#fff',
     borderTopColor: '#e0e0e0',
   },
