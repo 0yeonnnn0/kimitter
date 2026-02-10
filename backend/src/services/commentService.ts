@@ -1,5 +1,7 @@
+import { NotificationType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { ForbiddenError, NotFoundError } from '../utils/errors';
+import { logger } from '../utils/logger';
 
 const userSelect = { id: true, username: true, nickname: true, profileImageUrl: true };
 
@@ -19,10 +21,44 @@ export const createComment = async (
     if (!parent) throw new NotFoundError('Parent comment');
   }
 
-  return prisma.comment.create({
+  const comment = await prisma.comment.create({
     data: { postId, userId, content, parentCommentId },
     include: { user: { select: userSelect } },
   });
+
+  try {
+    if (parentCommentId) {
+      const parent = await prisma.comment.findUnique({
+        where: { id: parentCommentId },
+        select: { userId: true },
+      });
+      if (parent && parent.userId !== userId) {
+        await prisma.notification.create({
+          data: {
+            postId,
+            senderId: userId,
+            recipientId: parent.userId,
+            notificationType: NotificationType.REPLY,
+            message: content,
+          },
+        });
+      }
+    } else if (post.userId !== userId) {
+      await prisma.notification.create({
+        data: {
+          postId,
+          senderId: userId,
+          recipientId: post.userId,
+          notificationType: NotificationType.COMMENT,
+          message: content,
+        },
+      });
+    }
+  } catch (err) {
+    logger.error('Failed to create comment notification', { error: err });
+  }
+
+  return comment;
 };
 
 export const getCommentsByPost = async (postId: number, page: number, limit: number) => {
@@ -82,8 +118,26 @@ export const createReply = async (commentId: number, userId: number, content: st
   });
   if (!parent) throw new NotFoundError('Comment');
 
-  return prisma.comment.create({
+  const reply = await prisma.comment.create({
     data: { postId: parent.postId, userId, content, parentCommentId: commentId },
     include: { user: { select: userSelect } },
   });
+
+  try {
+    if (parent.userId !== userId) {
+      await prisma.notification.create({
+        data: {
+          postId: parent.postId,
+          senderId: userId,
+          recipientId: parent.userId,
+          notificationType: NotificationType.REPLY,
+          message: content,
+        },
+      });
+    }
+  } catch (err) {
+    logger.error('Failed to create reply notification', { error: err });
+  }
+
+  return reply;
 };
