@@ -33,7 +33,12 @@ export const updateUser = async (
   });
 };
 
-export const getUserPosts = async (userId: number, page: number, limit: number) => {
+export const getUserPosts = async (
+  userId: number,
+  page: number,
+  limit: number,
+  requesterId: number,
+) => {
   const skip = (page - 1) * limit;
   const where = { userId, deletedAt: null };
 
@@ -44,7 +49,8 @@ export const getUserPosts = async (userId: number, page: number, limit: number) 
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        media: true,
+        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+        media: { orderBy: { position: 'asc' as const } },
         tags: { include: { tag: true } },
         _count: { select: { likes: true, comments: true } },
       },
@@ -52,7 +58,15 @@ export const getUserPosts = async (userId: number, page: number, limit: number) 
     prisma.post.count({ where }),
   ]);
 
-  return { posts, total, page, limit, totalPages: Math.ceil(total / limit) };
+  const postIds = posts.map((p) => p.id);
+  const likes = await prisma.like.findMany({
+    where: { userId: requesterId, postId: { in: postIds }, commentId: null },
+    select: { postId: true },
+  });
+  const likedPostIds = new Set(likes.map((l) => l.postId));
+  const postsWithLikes = posts.map((p) => ({ ...p, isLiked: likedPostIds.has(p.id) }));
+
+  return { posts: postsWithLikes, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
 
 export const getUserComments = async (userId: number, page: number, limit: number) => {

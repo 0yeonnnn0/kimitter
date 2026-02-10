@@ -45,11 +45,13 @@ describe('updateUser', () => {
 });
 
 describe('getUserPosts', () => {
-  it('returns paginated posts', async () => {
+  it('returns paginated posts with isLiked', async () => {
     db.post.findMany.mockResolvedValue([{ id: 1, content: 'hi' }]);
     db.post.count.mockResolvedValue(1);
-    const result = await userService.getUserPosts(1, 1, 10);
+    db.like.findMany.mockResolvedValue([{ postId: 1 }]);
+    const result = await userService.getUserPosts(1, 1, 10, 2);
     expect(result.posts).toHaveLength(1);
+    expect(result.posts[0].isLiked).toBe(true);
     expect(result.totalPages).toBe(1);
   });
 });

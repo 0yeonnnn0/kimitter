@@ -35,7 +35,7 @@ export const getUserPosts = async (req: Request, res: Response, next: NextFuncti
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
-    const result = await userService.getUserPosts(Number(req.params.userId), page, limit);
+    const result = await userService.getUserPosts(Number(req.params.userId), page, limit, req.userId!);
     res.json({ success: true, data: result.posts, pagination: { page: result.page, limit: result.limit, total: result.total, totalPages: result.totalPages } });
   } catch (err) {
     next(err);
