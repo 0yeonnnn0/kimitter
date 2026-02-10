@@ -42,10 +42,14 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
     router.push(`/${post.id}`);
   };
 
+  const navigateToProfile = () => {
+    router.push(`/user/${post.user.id}`);
+  };
+
   return (
     <View style={styles.card}>
-      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail}>
-        <View style={styles.header}>
+      <View style={styles.header}>
+        <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
           {post.user.profileImageUrl ? (
             <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
           ) : (
@@ -53,11 +57,15 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
               <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
             </View>
           )}
-          <View style={styles.headerInfo}>
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
             <Text style={styles.nickname}>{post.user.nickname}</Text>
-            <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
-          </View>
+          </TouchableOpacity>
+          <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
         </View>
+      </View>
+      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail}>
         {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
       </TouchableOpacity>
 
@@ -127,6 +135,9 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   nickname: {
     fontSize: 15,
@@ -134,9 +145,8 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   date: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#999',
-    marginTop: 2,
   },
   content: {
     fontSize: 15,
