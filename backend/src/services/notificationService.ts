@@ -143,3 +143,20 @@ export const deactivatePushToken = async (userId: number, token: string) => {
     data: { isActive: false },
   });
 };
+
+const RETENTION_DAYS = 30;
+
+export const cleanupOldNotifications = async () => {
+  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const result = await prisma.notification.deleteMany({
+    where: { createdAt: { lt: cutoff } },
+  });
+  if (result.count > 0) {
+    logger.info(`Cleaned up ${result.count} notifications older than ${RETENTION_DAYS} days`);
+  }
+};
+
+export const startCleanupSchedule = () => {
+  cleanupOldNotifications();
+  setInterval(cleanupOldNotifications, 24 * 60 * 60 * 1000);
+};

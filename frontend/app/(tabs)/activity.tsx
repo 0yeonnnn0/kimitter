@@ -32,28 +32,30 @@ function formatDate(dateStr: string): string {
 }
 
 export default function ActivityScreen() {
-  const { notifications, unreadCount, fetchUnread, markRead, markAllRead } =
+  const { notifications, unreadCount, fetchNotifications, markRead, markAllRead } =
     useNotificationStore();
 
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchUnread();
+    fetchNotifications();
   }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await fetchUnread();
+      await fetchNotifications();
     } finally {
       setRefreshing(false);
     }
-  }, [fetchUnread]);
+  }, [fetchNotifications]);
 
   const router = useRouter();
 
   const handlePress = (notification: Notification) => {
-    markRead(notification.id);
+    if (!notification.isRead) {
+      markRead(notification.id);
+    }
     if (notification.postId) {
       router.push(`/${notification.postId}`);
     }
