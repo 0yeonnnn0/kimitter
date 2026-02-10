@@ -8,6 +8,7 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,7 @@ export default function SearchScreen() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const toggleMode = (next: SearchMode) => {
     if (mode === next) {
@@ -77,6 +79,39 @@ export default function SearchScreen() {
       setLoading(false);
     }
   }, [query, mode]);
+
+  const handleRefresh = useCallback(async () => {
+    if (!searched) return;
+    setRefreshing(true);
+    try {
+      if (selectedTag) {
+        const { data } = await tagService.getPostsByTag(selectedTag);
+        setPosts(data.data);
+      } else if (mode === 'tag') {
+        const q = query.trim();
+        if (q) {
+          const { data } = await tagService.searchTags(q);
+          setTags(data.data);
+        }
+      } else if (mode === 'user') {
+        const q = query.trim();
+        if (q) {
+          const { data } = await userService.searchUsers(q);
+          setUsers(data.data);
+        }
+      } else {
+        const q = query.trim();
+        if (q) {
+          const { data } = await postService.searchPosts({ q });
+          setPosts(data.data);
+        }
+      }
+    } catch {
+      // keep current data on refresh failure
+    } finally {
+      setRefreshing(false);
+    }
+  }, [searched, selectedTag, mode, query]);
 
   const handleTagSelect = useCallback(async (tagName: string) => {
     setSelectedTag(tagName);
@@ -202,6 +237,9 @@ export default function SearchScreen() {
           data={tags}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderTagItem}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
           ListEmptyComponent={null}
         />
       ) : showUserList ? (
@@ -209,6 +247,9 @@ export default function SearchScreen() {
           data={users}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderUserItem}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
           ListEmptyComponent={null}
         />
       ) : (
@@ -216,6 +257,9 @@ export default function SearchScreen() {
           data={posts}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => <PostCard post={item} isLiked={item.isLiked} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
           ListEmptyComponent={
             searched ? (
               <View style={styles.centered}>

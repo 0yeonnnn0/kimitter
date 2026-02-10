@@ -27,7 +27,7 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="auto" />
-      <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: true, gestureResponseDistance: { start: 50 } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="[postId]" options={{ animation: 'slide_from_right' }} />

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import type { Post } from '../types/models';
 import * as userService from '../services/userService';
@@ -23,6 +24,7 @@ export default function ProfileTabs({ userId, headerComponent }: ProfileTabsProp
   const [activeTab, setActiveTab] = useState<TabKey>('threads');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchTabData = useCallback(async (tab: TabKey) => {
     setLoading(true);
@@ -47,6 +49,25 @@ export default function ProfileTabs({ userId, headerComponent }: ProfileTabsProp
   useEffect(() => {
     fetchTabData(activeTab);
   }, [activeTab, fetchTabData]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      let res;
+      if (activeTab === 'threads') {
+        res = await userService.getUserPosts(userId);
+      } else if (activeTab === 'replies') {
+        res = await userService.getUserRepliedPosts(userId);
+      } else {
+        res = await userService.getUserMediaPosts(userId);
+      }
+      setPosts(res.data.data.posts ?? res.data.data ?? []);
+    } catch {
+      // keep current data on refresh failure
+    } finally {
+      setRefreshing(false);
+    }
+  }, [activeTab, userId]);
 
   const handleTabPress = (tab: TabKey) => {
     if (tab !== activeTab) {
@@ -130,6 +151,9 @@ export default function ProfileTabs({ userId, headerComponent }: ProfileTabsProp
       data={posts}
       keyExtractor={(item) => String(item.id)}
       ListHeaderComponent={listHeader}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
       renderItem={({ item }) => (
         <PostCard
           post={item}
