@@ -1,6 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import * as userService from '../services/userService';
 
+export const searchUsers = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const q = (req.query.q as string) || '';
+    const users = await userService.searchUsers(q);
+    res.json({ success: true, data: users });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMe = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await userService.getCurrentUser(req.userId!);

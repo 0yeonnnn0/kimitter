@@ -1,5 +1,9 @@
 import api from './api';
 
+export const searchUsers = (q: string) => {
+  return api.get('/users/search', { params: { q } });
+};
+
 export const getUser = (userId: number) => {
   return api.get(`/users/${userId}`);
 };

@@ -13,6 +13,21 @@ const userSelect = {
   updatedAt: true,
 };
 
+export const searchUsers = async (query: string) => {
+  return prisma.user.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { username: { contains: query, mode: 'insensitive' } },
+        { nickname: { contains: query, mode: 'insensitive' } },
+      ],
+    },
+    select: userSelect,
+    take: 20,
+    orderBy: { nickname: 'asc' },
+  });
+};
+
 export const getUserById = async (userId: number) => {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: userSelect });
   if (!user) throw new NotFoundError('User');
