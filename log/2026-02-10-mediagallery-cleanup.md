@@ -77,6 +77,26 @@ const SINGLE_IMAGE_HEIGHT = SINGLE_IMAGE_WIDTH * 0.75;    // ~269pt
 
 ---
 
+### 5. `frontend/src/components/MediaGallery.tsx` (원본 비율 유지 — Image.getSize)
+
+**변경 내용:**
+- `Image.getSize(uri)` 를 사용해 원본 이미지의 width/height를 비동기로 가져옴
+- 원본 비율(naturalHeight / naturalWidth)을 계산하여 표시 높이를 동적으로 결정
+- `clampHeight()` 함수로 min(120pt) / max(단일: 500pt, 다중: 360pt) 제한
+- 이미지 크기 로딩 중 ActivityIndicator placeholder 표시
+- 풀스크린 모달: 화면 높이의 80%로 변경 (contain으로 원본 비율 유지)
+
+**기술 원리 (Threads 방식):**
+```
+1. Image.getSize(uri) → 원본 width, height 획득
+2. ratio = naturalHeight / naturalWidth
+3. displayHeight = displayWidth × ratio
+4. clamp(displayHeight, MIN, MAX)
+5. resizeMode="cover" + 정확한 크기 → 잘림 최소화
+```
+
+---
+
 ## 검증
 
 - `npx tsc --noEmit` (frontend): 에러 0개 통과

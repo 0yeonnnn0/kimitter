@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Image,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Modal,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PostMedia } from '../types/models';
@@ -16,20 +17,65 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
 const IMAGE_GAP = 8;
 const MULTI_IMAGE_WIDTH = Math.round((SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - IMAGE_GAP) / 2);
-const MULTI_IMAGE_HEIGHT = Math.round(MULTI_IMAGE_WIDTH * 1.5);
 const SINGLE_IMAGE_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
-const SINGLE_IMAGE_HEIGHT = Math.round(SINGLE_IMAGE_WIDTH * 0.75);
+const MIN_HEIGHT = 120;
+const MAX_HEIGHT_SINGLE = 500;
+const MAX_HEIGHT_MULTI = 360;
 
 interface MediaGalleryProps {
   media: PostMedia[];
 }
 
+interface ImageSize {
+  width: number;
+  height: number;
+}
+
+function clampHeight(
+  displayWidth: number,
+  naturalWidth: number,
+  naturalHeight: number,
+  maxHeight: number,
+): number {
+  const ratio = naturalHeight / naturalWidth;
+  const raw = displayWidth * ratio;
+  return Math.round(Math.max(MIN_HEIGHT, Math.min(raw, maxHeight)));
+}
+
 export default function MediaGallery({ media }: MediaGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  if (media.length === 0) return null;
+  const [sizes, setSizes] = useState<Record<number, ImageSize>>({});
 
   const isSingle = media.length === 1;
+  const displayWidth = isSingle ? SINGLE_IMAGE_WIDTH : MULTI_IMAGE_WIDTH;
+  const maxHeight = isSingle ? MAX_HEIGHT_SINGLE : MAX_HEIGHT_MULTI;
+
+  const fetchSizes = useCallback(() => {
+    media.forEach((m) => {
+      const uri = getFileUrl(m.fileUrl);
+      Image.getSize(
+        uri,
+        (w, h) => {
+          setSizes((prev) => {
+            if (prev[m.id]) return prev;
+            return { ...prev, [m.id]: { width: w, height: h } };
+          });
+        },
+        () => {
+          setSizes((prev) => {
+            if (prev[m.id]) return prev;
+            return { ...prev, [m.id]: { width: 1, height: 1 } };
+          });
+        },
+      );
+    });
+  }, [media]);
+
+  useEffect(() => {
+    fetchSizes();
+  }, [fetchSizes]);
+
+  if (media.length === 0) return null;
 
   return (
     <View>
@@ -38,19 +84,37 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
       >
-        {media.map((m, index) => (
-          <TouchableOpacity
-            key={m.id}
-            activeOpacity={0.85}
-            onPress={() => setSelectedIndex(index)}
-          >
-            <Image
-              source={{ uri: getFileUrl(m.fileUrl) }}
-              style={isSingle ? styles.thumbnailSingle : styles.thumbnailMulti}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
-        ))}
+        {media.map((m, index) => {
+          const size = sizes[m.id];
+          const height = size
+            ? clampHeight(displayWidth, size.width, size.height, maxHeight)
+            : Math.round(displayWidth * 1.2);
+
+          return (
+            <TouchableOpacity
+              key={m.id}
+              activeOpacity={0.85}
+              onPress={() => setSelectedIndex(index)}
+            >
+              {!size ? (
+                <View
+                  style={[
+                    styles.placeholder,
+                    { width: displayWidth, height, borderRadius: 12 },
+                  ]}
+                >
+                  <ActivityIndicator size="small" color="#999" />
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: getFileUrl(m.fileUrl) }}
+                  style={{ width: displayWidth, height, borderRadius: 12 }}
+                  resizeMode="cover"
+                />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       <Modal visible={selectedIndex !== null} transparent animationType="fade">
@@ -97,15 +161,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: HORIZONTAL_PADDING,
     gap: IMAGE_GAP,
   },
-  thumbnailMulti: {
-    width: MULTI_IMAGE_WIDTH,
-    height: MULTI_IMAGE_HEIGHT,
-    borderRadius: 12,
-  },
-  thumbnailSingle: {
-    width: SINGLE_IMAGE_WIDTH,
-    height: SINGLE_IMAGE_HEIGHT,
-    borderRadius: 12,
+  placeholder: {
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -131,6 +190,6 @@ const styles = StyleSheet.create({
   },
   fullscreenImage: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.8,
   },
 });
