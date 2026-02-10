@@ -21,7 +21,8 @@ export const getUser = async (req: Request, res: Response, next: NextFunction) =
 
 export const updateMe = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data: { nickname?: string; bio?: string; profileImageUrl?: string } = {};
+    const data: { username?: string; nickname?: string; bio?: string; profileImageUrl?: string } = {};
+    if (req.body.username) data.username = req.body.username;
     if (req.body.nickname) data.nickname = req.body.nickname;
     if (req.body.bio !== undefined) data.bio = req.body.bio;
     if (req.file) data.profileImageUrl = `/uploads/${req.file.filename}`;

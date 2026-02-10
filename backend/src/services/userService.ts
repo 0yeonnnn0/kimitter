@@ -1,5 +1,5 @@
 import { prisma } from '../config/database';
-import { NotFoundError } from '../utils/errors';
+import { AppError, NotFoundError } from '../utils/errors';
 
 const userSelect = {
   id: true,
@@ -25,8 +25,16 @@ export const getCurrentUser = async (userId: number) => {
 
 export const updateUser = async (
   userId: number,
-  data: { nickname?: string; bio?: string; profileImageUrl?: string },
+  data: { username?: string; nickname?: string; bio?: string; profileImageUrl?: string },
 ) => {
+  if (data.username) {
+    const existing = await prisma.user.findFirst({
+      where: { username: data.username, id: { not: userId } },
+    });
+    if (existing) {
+      throw new AppError('이미 사용 중인 아이디입니다.', 409);
+    }
+  }
   return prisma.user.update({
     where: { id: userId },
     data,

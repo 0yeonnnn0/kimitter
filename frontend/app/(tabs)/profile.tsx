@@ -16,12 +16,14 @@ import * as likeService from '../../src/services/likeService';
 import { getFileUrl } from '../../src/config/constants';
 import type { Post } from '../../src/types/models';
 import PostCard from '../../src/components/PostCard';
+import EditProfileModal from '../../src/components/EditProfileModal';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   const loadPosts = useCallback(async () => {
     if (!user) return;
@@ -129,7 +131,7 @@ export default function ProfileScreen() {
               </View>
             ) : null}
             <Text style={styles.statText}>게시물 {posts.length}개</Text>
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity style={styles.editButton} onPress={() => setEditModalVisible(true)}>
               <Text style={styles.editButtonText}>프로필 편집</Text>
             </TouchableOpacity>
           </View>
@@ -153,6 +155,15 @@ export default function ProfileScreen() {
           )
         }
       />
+
+      {user ? (
+        <EditProfileModal
+          visible={editModalVisible}
+          user={user}
+          onClose={() => setEditModalVisible(false)}
+          onSaved={loadPosts}
+        />
+      ) : null}
     </View>
   );
 }
