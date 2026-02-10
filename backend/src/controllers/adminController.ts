@@ -14,6 +14,15 @@ export const createInvitationCode = async (req: Request, res: Response, next: Ne
   }
 };
 
+export const inviteByEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminService.inviteByEmail(req.userId!, req.body.email);
+    res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getInvitationCodes = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const codes = await adminService.getInvitationCodes();

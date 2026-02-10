@@ -1,13 +1,44 @@
 import crypto from 'crypto';
 import { Role } from '@prisma/client';
 import { prisma } from '../config/database';
-import { NotFoundError } from '../utils/errors';
+import { NotFoundError, ValidationError } from '../utils/errors';
+import { sendInvitationEmail } from './emailService';
+
+const generateInviteCode = (): string => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  const bytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return code;
+};
 
 export const createInvitationCode = async (adminId: number, expiresAt?: Date) => {
-  const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+  const code = generateInviteCode();
   return prisma.invitationCode.create({
     data: { code, createdBy: adminId, expiresAt },
   });
+};
+
+export const inviteByEmail = async (adminId: number, email: string) => {
+  const existing = await prisma.invitationCode.findFirst({
+    where: { email, usedBy: null },
+  });
+  if (existing) {
+    throw new ValidationError('An unused invitation already exists for this email');
+  }
+
+  const code = generateInviteCode();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const invitation = await prisma.invitationCode.create({
+    data: { code, email, createdBy: adminId, expiresAt },
+  });
+
+  const emailSent = await sendInvitationEmail(email, code);
+
+  return { invitation, emailSent };
 };
 
 export const getInvitationCodes = async () => {

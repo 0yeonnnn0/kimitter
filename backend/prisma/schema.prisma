@@ -63,6 +63,7 @@ model User {
 model InvitationCode {
   id        Int       @id @default(autoincrement())
   code      String    @unique @db.VarChar(50)
+  email     String?   @db.VarChar(255)
   createdBy Int?      @map("created_by")
   usedBy    Int?      @unique @map("used_by")
   usedAt    DateTime? @map("used_at")

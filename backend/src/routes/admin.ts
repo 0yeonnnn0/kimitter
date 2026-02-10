@@ -3,12 +3,13 @@ import * as adminController from '../controllers/adminController';
 import { verifyToken } from '../middleware/auth';
 import { requireAdmin } from '../middleware/admin';
 import { validate } from '../middleware/validate';
-import { createInvitationSchema, updateRoleSchema } from '../validations/adminValidation';
+import { createInvitationSchema, inviteByEmailSchema, updateRoleSchema } from '../validations/adminValidation';
 
 const router = Router();
 
 router.use(verifyToken, requireAdmin);
 
+router.post('/invite', validate(inviteByEmailSchema), adminController.inviteByEmail);
 router.post('/invitation-codes', validate(createInvitationSchema), adminController.createInvitationCode);
 router.get('/invitation-codes', adminController.getInvitationCodes);
 router.delete('/invitation-codes/:code', adminController.deleteInvitationCode);
