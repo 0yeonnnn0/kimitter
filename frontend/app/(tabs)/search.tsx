@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,38 @@ const GRID_GAP = 2;
 const NUM_COLUMNS = 3;
 const TILE_SIZE = Math.floor((SCREEN_WIDTH - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS);
 
+type GalleryRow =
+  | { type: 'header'; key: string; label: string }
+  | { type: 'row'; key: string; posts: Post[] };
+
+function formatMonthLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+}
+
+function buildGalleryRows(allPosts: Post[]): GalleryRow[] {
+  const grouped = new Map<string, Post[]>();
+  for (const post of allPosts) {
+    const key = formatMonthLabel(post.createdAt);
+    const arr = grouped.get(key);
+    if (arr) {
+      arr.push(post);
+    } else {
+      grouped.set(key, [post]);
+    }
+  }
+
+  const rows: GalleryRow[] = [];
+  for (const [label, monthPosts] of grouped) {
+    rows.push({ type: 'header', key: `h-${label}`, label });
+    for (let i = 0; i < monthPosts.length; i += NUM_COLUMNS) {
+      const chunk = monthPosts.slice(i, i + NUM_COLUMNS);
+      rows.push({ type: 'row', key: `r-${label}-${i}`, posts: chunk });
+    }
+  }
+  return rows;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -35,27 +67,29 @@ export default function SearchScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [mediaPosts, setMediaPosts] = useState<Post[]>([]);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [galleryLoading, setGalleryLoading] = useState(true);
   const [searched, setSearched] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadMediaPosts = useCallback(async () => {
+  const loadAllPosts = useCallback(async () => {
     try {
-      const { data } = await postService.searchPosts({ mediaOnly: 'true', limit: 60 });
-      setMediaPosts(data.data);
+      const { data } = await postService.getPosts(1, 100);
+      setAllPosts(data.data);
     } catch {
-      setMediaPosts([]);
+      setAllPosts([]);
     } finally {
       setGalleryLoading(false);
     }
   }, []);
 
+  const galleryRows = useMemo(() => buildGalleryRows(allPosts), [allPosts]);
+
   useEffect(() => {
-    loadMediaPosts();
-  }, [loadMediaPosts]);
+    loadAllPosts();
+  }, [loadAllPosts]);
 
   const toggleMode = (next: SearchMode) => {
     if (mode === next) {
@@ -118,7 +152,7 @@ export default function SearchScreen() {
     setRefreshing(true);
     try {
       if (!searched) {
-        await loadMediaPosts();
+        await loadAllPosts();
       } else if (selectedTag) {
         const { data } = await tagService.getPostsByTag(selectedTag);
         setPosts(data.data);
@@ -146,7 +180,7 @@ export default function SearchScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [searched, selectedTag, mode, query, loadMediaPosts]);
+  }, [searched, selectedTag, mode, query, loadAllPosts]);
 
   const handleTagSelect = useCallback(async (tagName: string) => {
     setSelectedTag(tagName);
@@ -226,32 +260,60 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
-  const renderGridItem = ({ item, index }: { item: Post; index: number }) => {
-    const firstMedia = item.media[0];
-    if (!firstMedia) return null;
-    const isRightEdge = (index + 1) % NUM_COLUMNS === 0;
+  const renderTile = (post: Post, index: number, rowLength: number) => {
+    const isRightEdge = index === rowLength - 1;
+    const firstMedia = post.media[0];
+    const hasMedia = !!firstMedia;
+
     return (
       <TouchableOpacity
+        key={post.id}
         activeOpacity={0.8}
-        onPress={() => router.push(`/${item.id}`)}
+        onPress={() => router.push(`/${post.id}`)}
         style={[styles.gridTile, !isRightEdge && { marginRight: GRID_GAP }]}
       >
-        <Image
-          source={{ uri: getFileUrl(firstMedia.fileUrl) }}
-          style={styles.gridImage}
-          resizeMode="cover"
-        />
-        {item.media.length > 1 ? (
-          <View style={styles.multiMediaBadge}>
-            <Ionicons name="copy-outline" size={14} color="#fff" />
+        {hasMedia ? (
+          <>
+            <Image
+              source={{ uri: getFileUrl(firstMedia.fileUrl) }}
+              style={styles.gridImage}
+              resizeMode="cover"
+            />
+            {post.media.length > 1 ? (
+              <View style={styles.multiMediaBadge}>
+                <Ionicons name="copy-outline" size={14} color="#fff" />
+              </View>
+            ) : null}
+            {firstMedia.mediaType === 'VIDEO' ? (
+              <View style={styles.videoBadge}>
+                <Ionicons name="play" size={14} color="#fff" />
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.textTile}>
+            <Text style={styles.textTileContent} numberOfLines={5}>
+              {post.content}
+            </Text>
+            <Text style={styles.textTileAuthor}>{post.user.nickname}</Text>
           </View>
-        ) : null}
-        {firstMedia.mediaType === 'VIDEO' ? (
-          <View style={styles.videoBadge}>
-            <Ionicons name="play" size={14} color="#fff" />
-          </View>
-        ) : null}
+        )}
       </TouchableOpacity>
+    );
+  };
+
+  const renderGalleryItem = ({ item }: { item: GalleryRow }) => {
+    if (item.type === 'header') {
+      return (
+        <View style={styles.monthHeader}>
+          <Text style={styles.monthHeaderText}>{item.label}</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.gridRow}>
+        {item.posts.map((post, i) => renderTile(post, i, item.posts.length))}
+      </View>
     );
   };
 
@@ -371,14 +433,12 @@ export default function SearchScreen() {
 
     return (
       <FlatList
-        data={mediaPosts}
-        keyExtractor={(item) => String(item.id)}
-        numColumns={NUM_COLUMNS}
-        renderItem={renderGridItem}
+        data={galleryRows}
+        keyExtractor={(item) => item.key}
+        renderItem={renderGalleryItem}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        columnWrapperStyle={styles.gridRow}
         ListEmptyComponent={
           galleryLoading ? (
             <View style={styles.centered}>
@@ -386,7 +446,7 @@ export default function SearchScreen() {
             </View>
           ) : (
             <View style={styles.centered}>
-              <Text style={styles.emptyText}>미디어가 포함된 게시물이 없습니다.</Text>
+              <Text style={styles.emptyText}>게시물이 없습니다.</Text>
             </View>
           )
         }
@@ -550,17 +610,45 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 1,
   },
+  monthHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  monthHeaderText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
   gridRow: {
+    flexDirection: 'row',
     marginBottom: GRID_GAP,
   },
   gridTile: {
     width: TILE_SIZE,
     height: TILE_SIZE,
     position: 'relative',
+    overflow: 'hidden',
   },
   gridImage: {
     width: TILE_SIZE,
     height: TILE_SIZE,
+  },
+  textTile: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    justifyContent: 'space-between',
+  },
+  textTileContent: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#333',
+  },
+  textTileAuthor: {
+    fontSize: 10,
+    color: '#999',
+    marginTop: 4,
   },
   multiMediaBadge: {
     position: 'absolute',
