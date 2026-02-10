@@ -74,6 +74,7 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
       req.query.q as string | undefined,
       req.query.month as string | undefined,
       req.query.mediaType as string | undefined,
+      req.query.mediaOnly === 'true',
     );
     res.json({
       success: true,

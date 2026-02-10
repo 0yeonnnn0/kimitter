@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,24 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as postService from '../../src/services/postService';
 import * as tagService from '../../src/services/tagService';
 import * as userService from '../../src/services/userService';
+import * as likeService from '../../src/services/likeService';
 import PostCard from '../../src/components/PostCard';
 import { getFileUrl } from '../../src/config/constants';
 import type { Post, Tag, User } from '../../src/types/models';
 
 type SearchMode = 'all' | 'tag' | 'user';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GRID_GAP = 2;
+const NUM_COLUMNS = 3;
+const TILE_SIZE = Math.floor((SCREEN_WIDTH - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS);
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -28,10 +35,27 @@ export default function SearchScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [mediaPosts, setMediaPosts] = useState<Post[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [galleryLoading, setGalleryLoading] = useState(true);
   const [searched, setSearched] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const loadMediaPosts = useCallback(async () => {
+    try {
+      const { data } = await postService.searchPosts({ mediaOnly: 'true', limit: 60 });
+      setMediaPosts(data.data);
+    } catch {
+      setMediaPosts([]);
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMediaPosts();
+  }, [loadMediaPosts]);
 
   const toggleMode = (next: SearchMode) => {
     if (mode === next) {
@@ -45,6 +69,16 @@ export default function SearchScreen() {
     setUsers([]);
     setSelectedTag(null);
     setSearched(false);
+  };
+
+  const clearSearch = () => {
+    setQuery('');
+    setPosts([]);
+    setTags([]);
+    setUsers([]);
+    setSelectedTag(null);
+    setSearched(false);
+    setMode('all');
   };
 
   const handleSearch = useCallback(async () => {
@@ -81,10 +115,11 @@ export default function SearchScreen() {
   }, [query, mode]);
 
   const handleRefresh = useCallback(async () => {
-    if (!searched) return;
     setRefreshing(true);
     try {
-      if (selectedTag) {
+      if (!searched) {
+        await loadMediaPosts();
+      } else if (selectedTag) {
         const { data } = await tagService.getPostsByTag(selectedTag);
         setPosts(data.data);
       } else if (mode === 'tag') {
@@ -111,7 +146,7 @@ export default function SearchScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [searched, selectedTag, mode, query]);
+  }, [searched, selectedTag, mode, query, loadMediaPosts]);
 
   const handleTagSelect = useCallback(async (tagName: string) => {
     setSelectedTag(tagName);
@@ -127,7 +162,28 @@ export default function SearchScreen() {
     }
   }, []);
 
-  const placeholder = {
+  const handleLikeToggle = useCallback(async (postId: number, liked: boolean) => {
+    const updateFn = (prev: Post[]) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, isLiked: liked, _count: { ...p._count, likes: p._count.likes + (liked ? 1 : -1) } }
+          : p,
+      );
+    setPosts(updateFn);
+    try {
+      await likeService.togglePostLike(postId);
+    } catch {
+      const revertFn = (prev: Post[]) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isLiked: !liked, _count: { ...p._count, likes: p._count.likes + (liked ? -1 : 1) } }
+            : p,
+        );
+      setPosts(revertFn);
+    }
+  }, []);
+
+  const placeholder: Record<SearchMode, string> = {
     all: '게시물 검색...',
     tag: '태그 검색...',
     user: '이름 또는 아이디 검색...',
@@ -170,69 +226,105 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
-  const showTagList = mode === 'tag' && tags.length > 0 && !selectedTag;
-  const showUserList = mode === 'user' && users.length > 0;
-  const showPosts = !showTagList && !showUserList;
+  const renderGridItem = ({ item, index }: { item: Post; index: number }) => {
+    const firstMedia = item.media[0];
+    if (!firstMedia) return null;
+    const isRightEdge = (index + 1) % NUM_COLUMNS === 0;
+    return (
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => router.push(`/${item.id}`)}
+        style={[styles.gridTile, !isRightEdge && { marginRight: GRID_GAP }]}
+      >
+        <Image
+          source={{ uri: getFileUrl(firstMedia.fileUrl) }}
+          style={styles.gridImage}
+          resizeMode="cover"
+        />
+        {item.media.length > 1 ? (
+          <View style={styles.multiMediaBadge}>
+            <Ionicons name="copy-outline" size={14} color="#fff" />
+          </View>
+        ) : null}
+        {firstMedia.mediaType === 'VIDEO' ? (
+          <View style={styles.videoBadge}>
+            <Ionicons name="play" size={14} color="#fff" />
+          </View>
+        ) : null}
+      </TouchableOpacity>
+    );
+  };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>검색</Text>
+  const showTagList = searched && mode === 'tag' && tags.length > 0 && !selectedTag;
+  const showUserList = searched && mode === 'user' && users.length > 0;
+  const showSearchResults = searched && !showTagList && !showUserList;
+
+  const searchBar = (
+    <View style={styles.searchSection}>
+      <View style={styles.searchInputRow}>
+        {mode !== 'all' ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>
+              {mode === 'tag' ? '태그' : '유저'}
+            </Text>
+            <TouchableOpacity onPress={() => toggleMode(mode)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={16} color="#666" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+        <TextInput
+          style={styles.searchInput}
+          placeholder={placeholder[mode]}
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+          autoCapitalize="none"
+        />
+        {searched ? (
+          <TouchableOpacity onPress={clearSearch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close-circle" size={20} color="#999" />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
-      <View style={styles.searchSection}>
-        <View style={styles.searchInputRow}>
-          {mode !== 'all' ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {mode === 'tag' ? '태그' : '유저'}
-              </Text>
-              <TouchableOpacity onPress={() => toggleMode(mode)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={16} color="#666" />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-          <TextInput
-            style={styles.searchInput}
-            placeholder={placeholder[mode]}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            style={[styles.filterButton, mode === 'tag' && styles.filterButtonActive]}
-            onPress={() => toggleMode('tag')}
-          >
-            <Ionicons name="pricetag-outline" size={14} color={mode === 'tag' ? '#fff' : '#666'} />
-            <Text style={[styles.filterText, mode === 'tag' && styles.filterTextActive]}>태그</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, mode === 'user' && styles.filterButtonActive]}
-            onPress={() => toggleMode('user')}
-          >
-            <Ionicons name="person-outline" size={14} color={mode === 'user' ? '#fff' : '#666'} />
-            <Text style={[styles.filterText, mode === 'user' && styles.filterTextActive]}>유저</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {selectedTag ? (
-        <TouchableOpacity style={styles.tagBreadcrumb} onPress={() => { setSelectedTag(null); setPosts([]); setSearched(true); handleSearch(); }}>
-          <Ionicons name="chevron-back" size={16} color="#007AFF" />
-          <Text style={styles.tagBreadcrumbText}>#{selectedTag} 게시물</Text>
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[styles.filterButton, mode === 'tag' && styles.filterButtonActive]}
+          onPress={() => toggleMode('tag')}
+        >
+          <Ionicons name="pricetag-outline" size={14} color={mode === 'tag' ? '#fff' : '#666'} />
+          <Text style={[styles.filterText, mode === 'tag' && styles.filterTextActive]}>태그</Text>
         </TouchableOpacity>
-      ) : null}
+        <TouchableOpacity
+          style={[styles.filterButton, mode === 'user' && styles.filterButtonActive]}
+          onPress={() => toggleMode('user')}
+        >
+          <Ionicons name="person-outline" size={14} color={mode === 'user' ? '#fff' : '#666'} />
+          <Text style={[styles.filterText, mode === 'user' && styles.filterTextActive]}>유저</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
-      {loading ? (
+  const tagBreadcrumb = selectedTag ? (
+    <TouchableOpacity style={styles.tagBreadcrumb} onPress={() => { setSelectedTag(null); setPosts([]); setSearched(true); handleSearch(); }}>
+      <Ionicons name="chevron-back" size={16} color="#007AFF" />
+      <Text style={styles.tagBreadcrumbText}>#{selectedTag} 게시물</Text>
+    </TouchableOpacity>
+  ) : null;
+
+  const renderContent = () => {
+    if (loading) {
+      return (
         <View style={styles.centered}>
           <ActivityIndicator size="large" />
         </View>
-      ) : showTagList ? (
+      );
+    }
+
+    if (showTagList) {
+      return (
         <FlatList
           data={tags}
           keyExtractor={(item) => String(item.id)}
@@ -240,9 +332,12 @@ export default function SearchScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
-          ListEmptyComponent={null}
         />
-      ) : showUserList ? (
+      );
+    }
+
+    if (showUserList) {
+      return (
         <FlatList
           data={users}
           keyExtractor={(item) => String(item.id)}
@@ -250,25 +345,63 @@ export default function SearchScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
-          ListEmptyComponent={null}
         />
-      ) : (
+      );
+    }
+
+    if (showSearchResults) {
+      return (
         <FlatList
           data={posts}
           keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => <PostCard post={item} isLiked={item.isLiked} />}
+          renderItem={({ item }) => (
+            <PostCard post={item} isLiked={item.isLiked} onLikeToggle={handleLikeToggle} />
+          )}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
           ListEmptyComponent={
-            searched ? (
-              <View style={styles.centered}>
-                <Text style={styles.emptyText}>{emptyMessage}</Text>
-              </View>
-            ) : null
+            <View style={styles.centered}>
+              <Text style={styles.emptyText}>{emptyMessage}</Text>
+            </View>
           }
         />
-      )}
+      );
+    }
+
+    return (
+      <FlatList
+        data={mediaPosts}
+        keyExtractor={(item) => String(item.id)}
+        numColumns={NUM_COLUMNS}
+        renderItem={renderGridItem}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+        columnWrapperStyle={styles.gridRow}
+        ListEmptyComponent={
+          galleryLoading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" />
+            </View>
+          ) : (
+            <View style={styles.centered}>
+              <Text style={styles.emptyText}>미디어가 포함된 게시물이 없습니다.</Text>
+            </View>
+          )
+        }
+      />
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>검색</Text>
+      </View>
+      {searchBar}
+      {tagBreadcrumb}
+      {renderContent()}
     </View>
   );
 }
@@ -429,6 +562,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 1,
+  },
+  gridRow: {
+    marginBottom: GRID_GAP,
+  },
+  gridTile: {
+    width: TILE_SIZE,
+    height: TILE_SIZE,
+    position: 'relative',
+  },
+  gridImage: {
+    width: TILE_SIZE,
+    height: TILE_SIZE,
+  },
+  multiMediaBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+  },
+  videoBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
   },
   centered: {
     flex: 1,

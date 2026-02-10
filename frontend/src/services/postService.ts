@@ -26,6 +26,7 @@ export const searchPosts = (params: {
   q?: string;
   month?: string;
   mediaType?: string;
+  mediaOnly?: string;
   page?: number;
   limit?: number;
 }) => api.get<PaginatedResponse<Post>>('/posts/search', { params });

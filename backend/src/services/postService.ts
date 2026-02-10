@@ -156,6 +156,7 @@ export const searchPosts = async (
   q?: string,
   month?: string,
   mediaType?: string,
+  mediaOnly?: boolean,
 ) => {
   const skip = (page - 1) * limit;
 
@@ -174,6 +175,8 @@ export const searchPosts = async (
 
   if (mediaType) {
     where.media = { some: { mediaType: mediaType as MediaType } };
+  } else if (mediaOnly) {
+    where.media = { some: {} };
   }
 
   const [posts, total] = await Promise.all([
