@@ -247,7 +247,7 @@ export default function PostDetailScreen() {
           {submitting ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.sendButtonText}>전송</Text>
+            <Ionicons name="send" size={18} color="#fff" style={{ transform: [{ rotate: '-45deg' }] }} />
           )}
         </TouchableOpacity>
       </View>
@@ -456,14 +456,12 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: '#007AFF',
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonDisabled: {
     opacity: 0.6,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: '600',
   },
 });
