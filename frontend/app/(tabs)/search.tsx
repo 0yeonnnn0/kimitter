@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -73,6 +75,8 @@ export default function SearchScreen() {
   const [galleryLoading, setGalleryLoading] = useState(true);
   const [searched, setSearched] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+  const galleryListRef = useRef<FlatList<GalleryRow>>(null);
 
   const loadAllPosts = useCallback(async () => {
     try {
@@ -86,6 +90,19 @@ export default function SearchScreen() {
   }, []);
 
   const galleryRows = useMemo(() => buildGalleryRows(allPosts), [allPosts]);
+
+  const availableMonths = useMemo(
+    () => galleryRows.filter((r): r is GalleryRow & { type: 'header' } => r.type === 'header').map((r) => r.label),
+    [galleryRows],
+  );
+
+  const scrollToMonth = useCallback((label: string) => {
+    const index = galleryRows.findIndex((r) => r.type === 'header' && r.label === label);
+    if (index >= 0 && galleryListRef.current) {
+      galleryListRef.current.scrollToIndex({ index, animated: true });
+    }
+    setMonthPickerVisible(false);
+  }, [galleryRows]);
 
   useEffect(() => {
     loadAllPosts();
@@ -305,9 +322,14 @@ export default function SearchScreen() {
   const renderGalleryItem = ({ item }: { item: GalleryRow }) => {
     if (item.type === 'header') {
       return (
-        <View style={styles.monthHeader}>
+        <TouchableOpacity
+          style={styles.monthHeader}
+          activeOpacity={0.6}
+          onPress={() => setMonthPickerVisible(true)}
+        >
           <Text style={styles.monthHeaderText}>{item.label}</Text>
-        </View>
+          <Ionicons name="chevron-down" size={16} color="#999" />
+        </TouchableOpacity>
       );
     }
     return (
@@ -433,12 +455,18 @@ export default function SearchScreen() {
 
     return (
       <FlatList
+        ref={galleryListRef}
         data={galleryRows}
         keyExtractor={(item) => item.key}
         renderItem={renderGalleryItem}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => {
+            galleryListRef.current?.scrollToIndex({ index: info.index, animated: true });
+          }, 300);
+        }}
         ListEmptyComponent={
           galleryLoading ? (
             <View style={styles.centered}>
@@ -459,6 +487,30 @@ export default function SearchScreen() {
       {searchBar}
       {tagBreadcrumb}
       {renderContent()}
+
+      <Modal visible={monthPickerVisible} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.monthPickerOverlay}
+          activeOpacity={1}
+          onPress={() => setMonthPickerVisible(false)}
+        >
+          <View style={styles.monthPickerSheet}>
+            <Text style={styles.monthPickerTitle}>월 선택</Text>
+            <ScrollView style={styles.monthPickerScroll}>
+              {availableMonths.map((label) => (
+                <TouchableOpacity
+                  key={label}
+                  style={styles.monthPickerItem}
+                  onPress={() => scrollToMonth(label)}
+                >
+                  <Ionicons name="calendar-outline" size={18} color="#007AFF" />
+                  <Text style={styles.monthPickerItemText}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -611,6 +663,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   monthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 10,
@@ -659,6 +714,41 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 6,
     left: 6,
+  },
+  monthPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  monthPickerSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    maxHeight: '50%',
+  },
+  monthPickerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  monthPickerScroll: {
+    paddingHorizontal: 20,
+  },
+  monthPickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    gap: 12,
+  },
+  monthPickerItemText: {
+    fontSize: 16,
+    color: '#1a1a1a',
   },
   centered: {
     flex: 1,
