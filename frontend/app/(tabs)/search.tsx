@@ -396,9 +396,6 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>검색</Text>
-      </View>
       {searchBar}
       {tagBreadcrumb}
       {renderContent()}
@@ -411,19 +408,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    backgroundColor: '#fff',
-    paddingTop: 72,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
   searchSection: {
     backgroundColor: '#fff',
+    paddingTop: 72,
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
