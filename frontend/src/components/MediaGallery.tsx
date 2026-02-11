@@ -17,7 +17,6 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
 const IMAGE_GAP = 8;
 const MULTI_IMAGE_WIDTH = Math.round((SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - IMAGE_GAP) / 2);
-const SINGLE_IMAGE_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
 const MIN_HEIGHT = 120;
 const MAX_HEIGHT_SINGLE = 500;
 const MAX_HEIGHT_MULTI = 360;
@@ -49,7 +48,8 @@ export default function MediaGallery({ media, paddingLeft }: MediaGalleryProps) 
   const [sizes, setSizes] = useState<Record<number, ImageSize>>({});
 
   const isSingle = media.length === 1;
-  const displayWidth = isSingle ? SINGLE_IMAGE_WIDTH : MULTI_IMAGE_WIDTH;
+  const singleWidth = SCREEN_WIDTH - leftPad - HORIZONTAL_PADDING;
+  const displayWidth = isSingle ? singleWidth : MULTI_IMAGE_WIDTH;
   const maxHeight = isSingle ? MAX_HEIGHT_SINGLE : MAX_HEIGHT_MULTI;
 
   const fetchSizes = useCallback(() => {
