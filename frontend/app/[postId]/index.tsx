@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   },
   commentItem: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 14,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -392,32 +392,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   commentNickname: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1a1a1a',
   },
   commentContent: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#333',
-    marginTop: 2,
+    marginTop: 4,
+    lineHeight: 22,
   },
   commentActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+    gap: 14,
+    marginTop: 8,
   },
   commentDate: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#999',
   },
   replyButton: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
     color: '#666',
   },
   replyItem: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 8,
+    marginTop: 12,
     paddingLeft: 42,
   },
   replyBar: {
