@@ -14,7 +14,7 @@ import { usePostActionStore } from '../stores/postActionStore';
 
 export default function PostActionSheet() {
   const router = useRouter();
-  const removePost = useFeedStore((s) => s.removePost);
+  const { removePost, fetchPosts } = useFeedStore();
   const { visible, post, isLiked, isOwner, onLikeToggle, close } = usePostActionStore();
 
   if (!post) return null;
@@ -41,6 +41,7 @@ export default function PostActionSheet() {
           try {
             await postService.deletePost(postId);
             removePost(postId);
+            await fetchPosts(true);
           } catch {
             Alert.alert('오류', '게시물 삭제에 실패했습니다.');
           }
