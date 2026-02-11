@@ -31,7 +31,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Family Threads</Text>
+        <Text style={styles.headerTitle}>Kimitter</Text>
       </View>
       <FlatList
         data={posts}

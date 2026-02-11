@@ -1,12 +1,12 @@
 # AGENTS.md
 
-> Guidelines for AI agents working in the Family Threads repository.
+> Guidelines for AI agents working in the Kimitter repository.
 
 ---
 
 ## Project Overview
 
-**Family Threads** — Private family-only SNS app for 4 members. Invite-code-based registration, media sharing (photos/GIFs/video), push notifications, admin controls.
+**Kimitter** — Private family-only SNS app for 4 members. Invite-code-based registration, media sharing (photos/GIFs/video), push notifications, admin controls.
 
 - **Language**: TypeScript (both frontend and backend)
 - **Frontend**: React Native + Expo (Expo Router, Zustand, Axios)

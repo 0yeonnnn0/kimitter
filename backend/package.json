@@ -1,7 +1,7 @@
 {
   "name": "family-threads-backend",
   "version": "1.0.0",
-  "description": "Family Threads - Private family SNS backend API",
+  "description": "Kimitter - Private family SNS backend API",
   "main": "dist/app.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",

@@ -63,7 +63,7 @@ export default function RegisterScreen() {
     >
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>회원가입</Text>
-        <Text style={styles.subtitle}>Family Threads에 오신 것을 환영합니다!</Text>
+        <Text style={styles.subtitle}>Kimitter에 오신 것을 환영합니다!</Text>
 
         <TextInput
           style={styles.input}

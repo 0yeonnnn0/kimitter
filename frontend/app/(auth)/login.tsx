@@ -45,7 +45,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
-        <Text style={styles.title}>Family Threads</Text>
+        <Text style={styles.title}>Kimitter</Text>
         <Text style={styles.subtitle}>가족만을 위한 공간</Text>
 
         <TextInput

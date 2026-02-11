@@ -28,7 +28,7 @@ export const sendInvitationEmail = async (email: string, code: string): Promise<
 
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-      <h1 style="font-size: 24px; color: #1a1a1a; margin-bottom: 8px;">Family Threads</h1>
+      <h1 style="font-size: 24px; color: #1a1a1a; margin-bottom: 8px;">Kimitter</h1>
       <p style="font-size: 15px; color: #666; margin-bottom: 32px;">가족만을 위한 공간에 초대합니다.</p>
       <div style="background: #f8f8f8; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
         <p style="font-size: 13px; color: #999; margin: 0 0 12px 0;">초대 코드</p>
@@ -45,7 +45,7 @@ export const sendInvitationEmail = async (email: string, code: string): Promise<
     await transporter.sendMail({
       from: config.smtp.from,
       to: email,
-      subject: 'Family Threads 초대 코드',
+      subject: 'Kimitter 초대 코드',
       html: htmlContent,
     });
     logger.info(`Invitation email sent to ${email}`);

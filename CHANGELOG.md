@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Family Threads project will be documented in this file.
+All notable changes to the Kimitter project will be documented in this file.
 
 ---
 

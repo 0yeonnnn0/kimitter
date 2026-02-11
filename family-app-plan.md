@@ -1,6 +1,6 @@
 # 가족용 폐쇄형 SNS 앱 - 종합 개발 계획서
 
-**프로젝트명**: Family Threads  
+**프로젝트명**: Kimitter  
 **개발 기간**: 1개월 (2026년 2월 ~ 3월)  
 **팀**: 개발자 1명  
 **최종 배포**: iOS + Android (React Native + Expo)
