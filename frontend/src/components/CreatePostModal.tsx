@@ -41,7 +41,7 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
   const [tags, setTags] = useState<string[]>([]);
   const [media, setMedia] = useState<PickedMedia[]>([]);
   const [loading, setLoading] = useState(false);
-  const { addPost } = useFeedStore();
+  const { fetchPosts } = useFeedStore();
   const router = useRouter();
 
   const resetForm = () => {
@@ -138,11 +138,11 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
           name: m.fileName || `upload_${Date.now()}_${index}.${fileExtension}`,
         } as unknown as Blob);
       });
-      const { data } = await postService.createPost(formData);
-      addPost(data.data);
+      await postService.createPost(formData);
       resetForm();
       onClose();
       router.replace('/(tabs)');
+      await fetchPosts(true);
     } catch (err: unknown) {
       let message = '게시물 작성에 실패했습니다.';
       if (err instanceof Error) {
