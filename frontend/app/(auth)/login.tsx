@@ -132,6 +132,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     backgroundColor: '#fafafa',
+    minHeight: 52,
   },
   inputInner: {
     flex: 1,
@@ -147,6 +148,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     backgroundColor: '#fafafa',
+    minHeight: 52,
   },
   passwordInput: {
     flex: 1,
