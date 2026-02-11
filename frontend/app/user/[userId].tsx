@@ -13,12 +13,14 @@ import * as userService from '../../src/services/userService';
 import { getFileUrl } from '../../src/config/constants';
 import type { User } from '../../src/types/models';
 import ProfileTabs from '../../src/components/ProfileTabs';
+import ImageViewerModal from '../../src/components/ImageViewerModal';
 
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
 
   const loadUser = useCallback(async () => {
     if (!userId) return;
@@ -60,13 +62,19 @@ export default function UserProfileScreen() {
           <Text style={styles.username}>@{user.username}</Text>
           {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
         </View>
-        {user.profileImageUrl ? (
-          <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={36} color="#999" />
-          </View>
-        )}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => user.profileImageUrl && setImageViewerVisible(true)}
+          disabled={!user.profileImageUrl}
+        >
+          {user.profileImageUrl ? (
+            <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={36} color="#999" />
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
       {user.role === 'ADMIN' ? (
         <View style={styles.badgeRow}>
@@ -89,6 +97,14 @@ export default function UserProfileScreen() {
       </View>
 
       <ProfileTabs userId={user.id} headerComponent={profileHeader} />
+
+      {user.profileImageUrl ? (
+        <ImageViewerModal
+          visible={imageViewerVisible}
+          imageUrl={getFileUrl(user.profileImageUrl)}
+          onClose={() => setImageViewerVisible(false)}
+        />
+      ) : null}
     </View>
   );
 }

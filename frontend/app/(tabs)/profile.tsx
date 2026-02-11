@@ -14,12 +14,14 @@ import { getFileUrl } from '../../src/config/constants';
 import ProfileTabs from '../../src/components/ProfileTabs';
 import EditProfileModal from '../../src/components/EditProfileModal';
 import InviteModal from '../../src/components/InviteModal';
+import ImageViewerModal from '../../src/components/ImageViewerModal';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const [loggingOut, setLoggingOut] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
@@ -49,13 +51,19 @@ export default function ProfileScreen() {
           <Text style={styles.username}>@{user.username}</Text>
           {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
         </View>
-        {user.profileImageUrl ? (
-          <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={36} color="#999" />
-          </View>
-        )}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => user.profileImageUrl && setImageViewerVisible(true)}
+          disabled={!user.profileImageUrl}
+        >
+          {user.profileImageUrl ? (
+            <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={36} color="#999" />
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
       {user.role === 'ADMIN' ? (
         <View style={styles.badgeRow}>
@@ -114,6 +122,14 @@ export default function ProfileScreen() {
         <InviteModal
           visible={inviteModalVisible}
           onClose={() => setInviteModalVisible(false)}
+        />
+      ) : null}
+
+      {user.profileImageUrl ? (
+        <ImageViewerModal
+          visible={imageViewerVisible}
+          imageUrl={getFileUrl(user.profileImageUrl)}
+          onClose={() => setImageViewerVisible(false)}
         />
       ) : null}
     </View>
