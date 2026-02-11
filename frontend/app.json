@@ -33,6 +33,13 @@
       "expo-router",
       "expo-secure-store",
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "dca62b82-227d-4d59-80cc-5e952938fa9c"
+      }
+    },
+    "owner": "angrybird62"
   }
 }
