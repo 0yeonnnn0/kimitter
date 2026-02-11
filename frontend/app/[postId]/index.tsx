@@ -11,6 +11,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as postService from '../../src/services/postService';
@@ -43,6 +44,7 @@ export default function PostDetailScreen() {
   const [commentText, setCommentText] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: number; nickname: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const loadPost = useCallback(async () => {
@@ -93,6 +95,15 @@ export default function PostDetailScreen() {
 
   useEffect(() => {
     Promise.all([loadPost(), loadComments()]).finally(() => setLoading(false));
+  }, [loadPost, loadComments]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadPost(), loadComments()]);
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadPost, loadComments]);
 
   const handleSubmitComment = async () => {
@@ -148,6 +159,9 @@ export default function PostDetailScreen() {
       <FlatList
         data={comments}
         keyExtractor={(item) => String(item.id)}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         ListHeaderComponent={
           <View>
             <View style={styles.postHeader}>

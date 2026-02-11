@@ -80,6 +80,7 @@ export default function ActivityScreen() {
       <FlatList
         data={notifications}
         keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
