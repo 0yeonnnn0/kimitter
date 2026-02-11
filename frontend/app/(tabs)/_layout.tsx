@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { Tabs } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CreatePostModal from '../../src/components/CreatePostModal';
+import { useCreateModalStore } from '../../src/stores/createModalStore';
 
 interface TabIconProps {
   focused: boolean;
@@ -23,7 +23,7 @@ function TabIcon({ focused, iconName, iconNameFocused }: TabIconProps) {
 }
 
 export default function TabsLayout() {
-  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const { visible: createModalVisible, open: openCreateModal, close: closeCreateModal } = useCreateModalStore();
 
   return (
     <>
@@ -60,7 +60,7 @@ export default function TabsLayout() {
           listeners={{
             tabPress: (e) => {
               e.preventDefault();
-              setCreateModalVisible(true);
+              openCreateModal();
             },
           }}
         />
@@ -84,7 +84,7 @@ export default function TabsLayout() {
 
       <CreatePostModal
         visible={createModalVisible}
-        onClose={() => setCreateModalVisible(false)}
+        onClose={closeCreateModal}
       />
     </>
   );
