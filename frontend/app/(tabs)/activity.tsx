@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   readAllButton: {
-    color: '#007AFF',
+    color: '#000',
     fontSize: 15,
   },
   item: {
@@ -148,13 +148,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   itemUnread: {
-    backgroundColor: '#f0f7ff',
+    backgroundColor: '#f5f5f5',
   },
   itemAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },

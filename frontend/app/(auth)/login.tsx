@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#007AFF',
+    color: '#000',
     fontSize: 15,
   },
 });

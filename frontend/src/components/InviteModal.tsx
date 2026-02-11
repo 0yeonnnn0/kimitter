@@ -73,7 +73,7 @@ export default function InviteModal({ visible, onClose }: InviteModalProps) {
         <Text style={styles.headerTitle}>가족 초대하기</Text>
         <TouchableOpacity onPress={handleInvite} disabled={inviting}>
           {inviting ? (
-            <ActivityIndicator size="small" color="#007AFF" />
+            <ActivityIndicator size="small" color="#000" />
           ) : (
             <Text style={styles.sendText}>초대</Text>
           )}
@@ -83,7 +83,7 @@ export default function InviteModal({ visible, onClose }: InviteModalProps) {
       <View style={styles.content}>
         <View style={styles.iconRow}>
           <View style={styles.iconCircle}>
-            <Ionicons name="mail-outline" size={32} color="#007AFF" />
+            <Ionicons name="mail-outline" size={32} color="#000" />
           </View>
         </View>
 
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   sendText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#000',
   },
   content: {
     paddingHorizontal: 16,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#f0f7ff',
+    backgroundColor: '#f5f5f5',
     alignItems: 'center',
     justifyContent: 'center',
   },

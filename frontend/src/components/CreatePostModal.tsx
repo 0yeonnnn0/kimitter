@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   submitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 8,
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   tagAddButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     borderRadius: 10,
     paddingHorizontal: 16,
     alignItems: 'center',

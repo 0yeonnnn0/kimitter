@@ -105,7 +105,7 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
         <Text style={styles.headerTitle}>프로필 편집</Text>
         <TouchableOpacity onPress={handleSave} disabled={saving}>
           {saving ? (
-            <ActivityIndicator size="small" color="#007AFF" />
+            <ActivityIndicator size="small" color="#000" />
           ) : (
             <Text style={styles.saveText}>완료</Text>
           )}
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#000',
   },
   content: {
     paddingHorizontal: 16,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },

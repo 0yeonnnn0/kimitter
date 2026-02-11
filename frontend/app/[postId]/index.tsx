@@ -139,7 +139,7 @@ export default function PostDetailScreen() {
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#007AFF" />
+          <Ionicons name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>게시물</Text>
         <View style={styles.headerSpacer} />
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   },
   replyButton: {
     fontSize: 12,
-    color: '#007AFF',
+    color: '#666',
   },
   replyItem: {
     flexDirection: 'row',
@@ -420,13 +420,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f0f7ff',
+    backgroundColor: '#f5f5f5',
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   replyBarText: {
     fontSize: 13,
-    color: '#007AFF',
+    color: '#333',
   },
   replyBarCancel: {
     fontSize: 13,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     maxHeight: 120,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     borderRadius: 20,
     width: 48,
     height: 48,

@@ -503,7 +503,7 @@ export default function SearchScreen() {
                   style={styles.monthPickerItem}
                   onPress={() => scrollToMonth(label)}
                 >
-                  <Ionicons name="calendar-outline" size={18} color="#007AFF" />
+                  <Ionicons name="calendar-outline" size={18} color="#000" />
                   <Text style={styles.monthPickerItemText}>{label}</Text>
                 </TouchableOpacity>
               ))}
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
