@@ -19,11 +19,14 @@ import PostCard from '../../src/components/PostCard';
 export default function HomeScreen() {
   const { posts, isLoading, isRefreshing, fetchPosts, loadMore, toggleLike } = useFeedStore();
   const user = useAuthStore((s) => s.user);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const openCreateModal = useCreateModalStore((s) => s.open);
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
+    if (isLoggedIn) {
+      fetchPosts();
+    }
+  }, [isLoggedIn]);
 
   const handleLikeToggle = useCallback(
     (postId: number, liked: boolean) => {

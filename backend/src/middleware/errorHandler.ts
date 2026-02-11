@@ -9,12 +9,17 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ): void => {
-  logger.error(err.message, { stack: err.stack });
-
   if (err instanceof AppError) {
+    if (err.statusCode === 401) {
+      logger.warn(err.message);
+    } else {
+      logger.error(err.message, { stack: err.stack });
+    }
     res.status(err.statusCode).json({ success: false, error: err.message });
     return;
   }
+
+  logger.error(err.message, { stack: err.stack });
 
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === 'P2002') {
