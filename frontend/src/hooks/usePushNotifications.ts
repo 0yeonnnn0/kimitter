@@ -57,14 +57,14 @@ export function usePushNotifications(isLoggedIn: boolean) {
     if (!isLoggedIn) return;
 
     const setup = async () => {
-      const token = await registerForPushNotifications();
-      if (token) {
-        const deviceType = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
-        try {
+      try {
+        const token = await registerForPushNotifications();
+        if (token) {
+          const deviceType = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
           await notificationService.registerPushToken(token, deviceType);
-        } catch {
-          /* token registration failed — will retry next launch */
         }
+      } catch {
+        /* push notification setup failed (e.g. missing aps-environment entitlement on Expo Go) */
       }
     };
 
