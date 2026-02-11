@@ -73,7 +73,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
               <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
+                <Ionicons name="person" size={20} color="#999" />
               </View>
             )}
           </TouchableOpacity>
@@ -156,15 +156,11 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: '#000',
+    backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+
   contentCol: {
     flex: 1,
   },

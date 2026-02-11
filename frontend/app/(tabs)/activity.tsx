@@ -3,10 +3,13 @@ import {
   View,
   Text,
   FlatList,
+  Image,
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { getFileUrl } from '../../src/config/constants';
 import { useRouter } from 'expo-router';
 import { useNotificationStore } from '../../src/stores/notificationStore';
 import type { Notification } from '../../src/types/models';
@@ -85,9 +88,16 @@ export default function ActivityScreen() {
             style={[styles.item, !item.isRead && styles.itemUnread]}
             onPress={() => handlePress(item)}
           >
-            <View style={styles.itemAvatar}>
-              <Text style={styles.itemAvatarText}>{item.sender.nickname[0]}</Text>
-            </View>
+            {item.sender.profileImageUrl ? (
+              <Image
+                source={{ uri: getFileUrl(item.sender.profileImageUrl) }}
+                style={styles.itemAvatarImage}
+              />
+            ) : (
+              <View style={styles.itemAvatar}>
+                <Ionicons name="person" size={20} color="#999" />
+              </View>
+            )}
             <View style={styles.itemBody}>
               <Text style={styles.itemText}>
                 <Text style={styles.itemNickname}>{item.sender.nickname}</Text>
@@ -150,18 +160,18 @@ const styles = StyleSheet.create({
   itemUnread: {
     backgroundColor: '#f5f5f5',
   },
+  itemAvatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
   itemAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#000',
+    backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  itemAvatarText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   itemBody: {
     flex: 1,

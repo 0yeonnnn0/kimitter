@@ -267,7 +267,7 @@ export default function SearchScreen() {
         <Image source={{ uri: getFileUrl(item.profileImageUrl) }} style={styles.userAvatar} />
       ) : (
         <View style={styles.userAvatarPlaceholder}>
-          <Text style={styles.userAvatarText}>{item.nickname[0]}</Text>
+          <Ionicons name="person" size={22} color="#999" />
         </View>
       )}
       <View style={styles.userInfo}>
@@ -639,15 +639,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#000',
+    backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-  userAvatarText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   userInfo: {
     flex: 1,

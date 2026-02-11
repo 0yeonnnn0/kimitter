@@ -53,7 +53,7 @@ export default function ProfileScreen() {
           <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{user.nickname[0]}</Text>
+            <Ionicons name="person" size={36} color="#999" />
           </View>
         )}
       </View>
@@ -167,14 +167,9 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#000',
+    backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
   },
   nickname: {
     fontSize: 22,

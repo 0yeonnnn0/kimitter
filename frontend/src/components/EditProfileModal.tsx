@@ -118,7 +118,7 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
             <Image source={{ uri: currentImageUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>{nickname[0] ?? '?'}</Text>
+              <Ionicons name="person" size={44} color="#999" />
             </View>
           )}
           <View style={styles.cameraIcon}>
@@ -207,14 +207,9 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#000',
+    backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 34,
-    fontWeight: 'bold',
   },
   cameraIcon: {
     position: 'absolute',

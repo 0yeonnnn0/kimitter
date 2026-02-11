@@ -155,7 +155,7 @@ export default function PostDetailScreen() {
                 <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
+                  <Ionicons name="person" size={22} color="#999" />
                 </View>
               )}
               <View>
@@ -190,9 +190,13 @@ export default function PostDetailScreen() {
         renderItem={({ item }) => (
           <View style={styles.commentItem}>
             <View style={styles.commentHeader}>
-              <View style={styles.commentAvatar}>
-                <Text style={styles.commentAvatarText}>{item.user.nickname[0]}</Text>
-              </View>
+              {item.user.profileImageUrl ? (
+                <Image source={{ uri: getFileUrl(item.user.profileImageUrl) }} style={styles.commentAvatarImage} />
+              ) : (
+                <View style={styles.commentAvatar}>
+                  <Ionicons name="person" size={16} color="#999" />
+                </View>
+              )}
               <View style={styles.commentBody}>
                 <Text style={styles.commentNickname}>{item.user.nickname}</Text>
                 <Text style={styles.commentContent}>{item.content}</Text>
@@ -208,9 +212,13 @@ export default function PostDetailScreen() {
             </View>
             {item.replies?.map((reply) => (
               <View key={reply.id} style={styles.replyItem}>
-                <View style={styles.commentAvatar}>
-                  <Text style={styles.commentAvatarText}>{reply.user.nickname[0]}</Text>
-                </View>
+                {reply.user.profileImageUrl ? (
+                  <Image source={{ uri: getFileUrl(reply.user.profileImageUrl) }} style={styles.commentAvatarImage} />
+                ) : (
+                  <View style={styles.commentAvatar}>
+                    <Ionicons name="person" size={16} color="#999" />
+                  </View>
+                )}
                 <View style={styles.commentBody}>
                   <Text style={styles.commentNickname}>{reply.user.nickname}</Text>
                   <Text style={styles.commentContent}>{reply.content}</Text>
@@ -302,14 +310,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#000',
+    backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   nickname: {
     fontSize: 15,
@@ -371,19 +374,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  commentAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
   commentAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  commentAvatarText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#666',
-  },
+
   commentBody: {
     flex: 1,
   },
