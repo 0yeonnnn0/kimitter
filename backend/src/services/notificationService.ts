@@ -66,6 +66,38 @@ export const notifyPostMention = async (
   );
 };
 
+export const broadcastNotification = async (senderId: number, message: string) => {
+  const allUsers = await prisma.user.findMany({
+    where: { isActive: true, id: { not: senderId } },
+    select: { id: true },
+  });
+
+  const sender = await prisma.user.findUnique({
+    where: { id: senderId },
+    select: { nickname: true },
+  });
+
+  await Promise.all(
+    allUsers.map(async (user) => {
+      await prisma.notification.create({
+        data: {
+          senderId,
+          recipientId: user.id,
+          notificationType: NotificationType.CUSTOM,
+          message,
+        },
+      });
+      await sendPushNotification(
+        user.id,
+        sender?.nickname ?? '누군가',
+        message,
+      );
+    }),
+  );
+
+  return { recipientCount: allUsers.length };
+};
+
 export const getNotifications = async (userId: number, page: number, limit: number) => {
   const skip = (page - 1) * limit;
   const where = { recipientId: userId };

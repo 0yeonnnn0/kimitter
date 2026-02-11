@@ -22,3 +22,6 @@ export const sendPostNotification = (
   recipientIds: number[],
   message?: string,
 ) => api.post(`/notifications/posts/${postId}/notify`, { recipientIds, message });
+
+export const broadcastNotification = (message: string) =>
+  api.post<ApiResponse<{ recipientCount: number }>>('/notifications/broadcast', { message });

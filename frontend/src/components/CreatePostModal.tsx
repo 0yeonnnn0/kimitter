@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -16,7 +17,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFeedStore } from '../stores/feedStore';
 import * as postService from '../services/postService';
+import * as notificationService from '../services/notificationService';
 import BottomSheet from './BottomSheet';
+
+type Mode = 'post' | 'notify';
 
 interface PickedMedia {
   uri: string;
@@ -30,6 +34,8 @@ interface CreatePostModalProps {
 }
 
 export default function CreatePostModal({ visible, onClose }: CreatePostModalProps) {
+  const [mode, setMode] = useState<Mode>('post');
+  const [dropdownVisible, setDropdownVisible] = useState(false);
   const [content, setContent] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -43,11 +49,24 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
     setTagInput('');
     setTags([]);
     setMedia([]);
+    setMode('post');
+    setDropdownVisible(false);
   };
 
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const selectMode = (newMode: Mode) => {
+    if (newMode !== mode) {
+      setContent('');
+      setTagInput('');
+      setTags([]);
+      setMedia([]);
+    }
+    setMode(newMode);
+    setDropdownVisible(false);
   };
 
   const pickMedia = async () => {
@@ -98,7 +117,7 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
     setMedia((prev) => prev.filter((m) => m.uri !== uri));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitPost = async () => {
     if (!content.trim() && media.length === 0) {
       Alert.alert('오류', '내용이나 미디어를 추가해주세요.');
       return;
@@ -141,13 +160,57 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
     }
   };
 
+  const handleSubmitNotification = async () => {
+    if (!content.trim()) {
+      Alert.alert('오류', '알림 내용을 입력해주세요.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await notificationService.broadcastNotification(content.trim());
+      Alert.alert('완료', '모든 가족에게 알림을 보냈습니다.');
+      resetForm();
+      onClose();
+    } catch (err: unknown) {
+      let message = '알림 전송에 실패했습니다.';
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      if (typeof err === 'object' && err !== null && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        if (axiosErr.response?.data?.message) {
+          message = axiosErr.response.data.message;
+        }
+      }
+      Alert.alert('오류', message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (mode === 'post') {
+      handleSubmitPost();
+    } else {
+      handleSubmitNotification();
+    }
+  };
+
   return (
     <BottomSheet visible={visible} onClose={handleClose} fullScreen>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleClose}>
           <Text style={styles.cancelText}>취소</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>새 스레드</Text>
+        <TouchableOpacity
+          style={styles.titleDropdown}
+          onPress={() => setDropdownVisible(true)}
+        >
+          <Text style={styles.headerTitle}>
+            {mode === 'post' ? '새 글 쓰기' : '알림 보내기'}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color="#1a1a1a" />
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -156,71 +219,141 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
           {loading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.submitButtonText}>게시</Text>
+            <Text style={styles.submitButtonText}>
+              {mode === 'post' ? '게시' : '보내기'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
-        <TextInput
-          style={styles.contentInput}
-          placeholder="무슨 생각을 하고 계세요?"
-          value={content}
-          onChangeText={setContent}
-          multiline
-          maxLength={2000}
-        />
+        {mode === 'post' ? (
+          <>
+            <TextInput
+              style={styles.contentInput}
+              placeholder="무슨 생각을 하고 계세요?"
+              value={content}
+              onChangeText={setContent}
+              multiline
+              maxLength={2000}
+            />
 
-        {media.length > 0 ? (
-          <ScrollView horizontal style={styles.mediaRow} showsHorizontalScrollIndicator={false}>
-            {media.map((m) => (
-              <View key={m.uri} style={styles.mediaThumb}>
-                <Image source={{ uri: m.uri }} style={styles.mediaImage} />
-                <TouchableOpacity
-                  style={styles.mediaRemove}
-                  onPress={() => removeMedia(m.uri)}
-                >
-                  <Ionicons name="close" size={12} color="#fff" />
+            {media.length > 0 ? (
+              <ScrollView horizontal style={styles.mediaRow} showsHorizontalScrollIndicator={false}>
+                {media.map((m) => (
+                  <View key={m.uri} style={styles.mediaThumb}>
+                    <Image source={{ uri: m.uri }} style={styles.mediaImage} />
+                    <TouchableOpacity
+                      style={styles.mediaRemove}
+                      onPress={() => removeMedia(m.uri)}
+                    >
+                      <Ionicons name="close" size={12} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+
+            <TouchableOpacity style={styles.mediaButton} onPress={pickMedia}>
+              <Ionicons name="camera-outline" size={20} color="#666" />
+              <Text style={styles.mediaButtonText}>사진/동영상 추가</Text>
+            </TouchableOpacity>
+
+            <View style={styles.tagSection}>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.tagInput}
+                  placeholder="#태그 추가"
+                  value={tagInput}
+                  onChangeText={setTagInput}
+                  onSubmitEditing={addTag}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.tagAddButton} onPress={addTag}>
+                  <Text style={styles.tagAddButtonText}>추가</Text>
                 </TouchableOpacity>
               </View>
-            ))}
-          </ScrollView>
-        ) : null}
-
-        <TouchableOpacity style={styles.mediaButton} onPress={pickMedia}>
-          <Ionicons name="camera-outline" size={20} color="#666" />
-          <Text style={styles.mediaButtonText}>사진/동영상 추가</Text>
-        </TouchableOpacity>
-
-        <View style={styles.tagSection}>
-          <View style={styles.tagInputRow}>
+              {tags.length > 0 ? (
+                <View style={styles.tagList}>
+                  {tags.map((tag) => (
+                    <TouchableOpacity
+                      key={tag}
+                      style={styles.tagChip}
+                      onPress={() => removeTag(tag)}
+                    >
+                      <Text style={styles.tagChipText}>#{tag} ✕</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          </>
+        ) : (
+          <View style={styles.notifyBody}>
             <TextInput
-              style={styles.tagInput}
-              placeholder="#태그 추가"
-              value={tagInput}
-              onChangeText={setTagInput}
-              onSubmitEditing={addTag}
-              returnKeyType="done"
+              style={styles.notifyInput}
+              placeholder="모두에게 알림을 보낼 수 있습니다"
+              value={content}
+              onChangeText={setContent}
+              multiline
+              maxLength={80}
             />
-            <TouchableOpacity style={styles.tagAddButton} onPress={addTag}>
-              <Text style={styles.tagAddButtonText}>추가</Text>
+            <Text style={styles.charCount}>{content.length}/80</Text>
+          </View>
+        )}
+      </ScrollView>
+      <Modal
+        visible={dropdownVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDropdownVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.dropdownOverlay}
+          activeOpacity={1}
+          onPress={() => setDropdownVisible(false)}
+        >
+          <View style={styles.dropdownMenu}>
+            <TouchableOpacity
+              style={[
+                styles.dropdownItem,
+                mode === 'post' && styles.dropdownItemActive,
+              ]}
+              onPress={() => selectMode('post')}
+            >
+              <Ionicons name="create-outline" size={20} color={mode === 'post' ? '#000' : '#666'} />
+              <Text style={[
+                styles.dropdownText,
+                mode === 'post' && styles.dropdownTextActive,
+              ]}>
+                새 글 쓰기
+              </Text>
+              {mode === 'post' ? (
+                <Ionicons name="checkmark" size={18} color="#000" />
+              ) : null}
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity
+              style={[
+                styles.dropdownItem,
+                mode === 'notify' && styles.dropdownItemActive,
+              ]}
+              onPress={() => selectMode('notify')}
+            >
+              <Ionicons name="notifications-outline" size={20} color={mode === 'notify' ? '#000' : '#666'} />
+              <Text style={[
+                styles.dropdownText,
+                mode === 'notify' && styles.dropdownTextActive,
+              ]}>
+                알림 보내기
+              </Text>
+              {mode === 'notify' ? (
+                <Ionicons name="checkmark" size={18} color="#000" />
+              ) : null}
             </TouchableOpacity>
           </View>
-          {tags.length > 0 ? (
-            <View style={styles.tagList}>
-              {tags.map((tag) => (
-                <TouchableOpacity
-                  key={tag}
-                  style={styles.tagChip}
-                  onPress={() => removeTag(tag)}
-                >
-                  <Text style={styles.tagChipText}>#{tag} ✕</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : null}
-        </View>
-      </ScrollView>
+        </TouchableOpacity>
+      </Modal>
     </BottomSheet>
   );
 }
@@ -352,5 +485,66 @@ const styles = StyleSheet.create({
   tagChipText: {
     color: '#007AFF',
     fontSize: 13,
+  },
+  titleDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  notifyBody: {
+    padding: 16,
+  },
+  notifyInput: {
+    fontSize: 16,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    color: '#1a1a1a',
+  },
+  charCount: {
+    textAlign: 'right',
+    fontSize: 13,
+    color: '#999',
+    marginTop: 8,
+  },
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownMenu: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    width: 220,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 10,
+  },
+  dropdownItemActive: {
+    backgroundColor: '#f5f5f5',
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: '#666',
+    flex: 1,
+  },
+  dropdownTextActive: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 16,
   },
 });

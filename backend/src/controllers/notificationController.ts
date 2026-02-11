@@ -70,6 +70,18 @@ export const deleteNotification = async (req: Request, res: Response, next: Next
   }
 };
 
+export const broadcastNotification = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await notificationService.broadcastNotification(
+      req.userId!,
+      req.body.message,
+    );
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const registerToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const pushToken = await notificationService.registerPushToken(
