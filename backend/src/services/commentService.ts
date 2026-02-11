@@ -2,6 +2,7 @@ import { NotificationType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { ForbiddenError, NotFoundError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { sendPushNotification } from './notificationService';
 
 const userSelect = { id: true, username: true, nickname: true, profileImageUrl: true };
 
@@ -27,6 +28,12 @@ export const createComment = async (
   });
 
   try {
+    const sender = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { nickname: true },
+    });
+    const senderName = sender?.nickname ?? '누군가';
+
     if (parentCommentId) {
       const parent = await prisma.comment.findUnique({
         where: { id: parentCommentId },
@@ -42,6 +49,12 @@ export const createComment = async (
             message: content,
           },
         });
+        await sendPushNotification(
+          parent.userId,
+          `${senderName}님이 답글을 남겼습니다`,
+          content,
+          { postId },
+        );
       }
     } else if (post.userId !== userId) {
       await prisma.notification.create({
@@ -53,6 +66,12 @@ export const createComment = async (
           message: content,
         },
       });
+      await sendPushNotification(
+        post.userId,
+        `${senderName}님이 댓글을 남겼습니다`,
+        content,
+        { postId },
+      );
     }
   } catch (err) {
     logger.error('Failed to create comment notification', { error: err });
@@ -125,6 +144,10 @@ export const createReply = async (commentId: number, userId: number, content: st
 
   try {
     if (parent.userId !== userId) {
+      const sender = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { nickname: true },
+      });
       await prisma.notification.create({
         data: {
           postId: parent.postId,
@@ -134,6 +157,12 @@ export const createReply = async (commentId: number, userId: number, content: st
           message: content,
         },
       });
+      await sendPushNotification(
+        parent.userId,
+        `${sender?.nickname ?? '누군가'}님이 답글을 남겼습니다`,
+        content,
+        { postId: parent.postId },
+      );
     }
   } catch (err) {
     logger.error('Failed to create reply notification', { error: err });

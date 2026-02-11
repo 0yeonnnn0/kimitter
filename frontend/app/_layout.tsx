@@ -3,11 +3,14 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/stores/authStore';
 import { setLogoutCallback } from '../src/services/api';
+import { usePushNotifications } from '../src/hooks/usePushNotifications';
 
 export default function RootLayout() {
   const { isLoggedIn, isLoading, restoreSession } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+
+  usePushNotifications(isLoggedIn);
 
   useEffect(() => {
     restoreSession();

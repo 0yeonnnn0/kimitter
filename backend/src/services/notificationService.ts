@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 
 const expo = new Expo();
 
-const sendPushNotification = async (
+export const sendPushNotification = async (
   recipientId: number,
   title: string,
   body: string,
