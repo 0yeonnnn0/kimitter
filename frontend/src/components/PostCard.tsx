@@ -20,8 +20,9 @@ interface PostCardProps {
 }
 
 const AVATAR_SIZE = 40;
-const AVATAR_GAP = 10;
+const AVATAR_GAP = 8;
 const AVATAR_COL = AVATAR_SIZE + AVATAR_GAP;
+const SIDE_PADDING = 12;
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -100,9 +101,9 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
         </View>
       </View>
 
-      <View style={styles.belowAvatar}>
-        <MediaGallery media={post.media} />
+      <MediaGallery media={post.media} paddingLeft={SIDE_PADDING + AVATAR_COL} />
 
+      <View style={styles.belowAvatar}>
         {post.tags.length > 0 ? (
           <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.tags}>
             {post.tags.map(({ tag }) => (
@@ -140,8 +141,8 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: SIDE_PADDING,
+    paddingTop: 14,
   },
   avatarCol: {
     width: AVATAR_COL,
@@ -195,8 +196,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   belowAvatar: {
-    paddingLeft: 16 + AVATAR_COL,
-    paddingRight: 16,
+    paddingLeft: SIDE_PADDING + AVATAR_COL,
+    paddingRight: SIDE_PADDING,
   },
   tags: {
     flexDirection: 'row',

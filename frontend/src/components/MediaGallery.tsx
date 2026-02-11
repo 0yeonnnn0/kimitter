@@ -24,6 +24,7 @@ const MAX_HEIGHT_MULTI = 360;
 
 interface MediaGalleryProps {
   media: PostMedia[];
+  paddingLeft?: number;
 }
 
 interface ImageSize {
@@ -42,7 +43,8 @@ function clampHeight(
   return Math.round(Math.max(MIN_HEIGHT, Math.min(raw, maxHeight)));
 }
 
-export default function MediaGallery({ media }: MediaGalleryProps) {
+export default function MediaGallery({ media, paddingLeft }: MediaGalleryProps) {
+  const leftPad = paddingLeft ?? HORIZONTAL_PADDING;
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [sizes, setSizes] = useState<Record<number, ImageSize>>({});
 
@@ -92,7 +94,8 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
               width: displayWidth,
               height: Math.round(displayWidth * 1.2),
               borderRadius: 12,
-              marginHorizontal: HORIZONTAL_PADDING,
+              marginLeft: leftPad,
+              marginRight: HORIZONTAL_PADDING,
             },
           ]}
         >
@@ -102,7 +105,7 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={{ paddingLeft: leftPad, paddingRight: HORIZONTAL_PADDING, gap: IMAGE_GAP }}
         >
           {media.map((m, index) => (
             <TouchableOpacity
@@ -160,10 +163,7 @@ export default function MediaGallery({ media }: MediaGalleryProps) {
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    paddingHorizontal: HORIZONTAL_PADDING,
-    gap: IMAGE_GAP,
-  },
+
   placeholder: {
     backgroundColor: '#f0f0f0',
     alignItems: 'center',

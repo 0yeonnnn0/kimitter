@@ -137,13 +137,13 @@ const styles = StyleSheet.create({
   composeCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   composeAvatarCol: {
-    width: 50,
+    width: 48,
   },
   composeAvatar: {
     width: 40,
