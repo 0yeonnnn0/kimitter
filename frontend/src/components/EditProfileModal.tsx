@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import type { User } from '../types/models';
 import { getFileUrl } from '../config/constants';
 import * as userService from '../services/userService';
@@ -25,6 +26,7 @@ interface EditProfileModalProps {
 }
 
 export default function EditProfileModal({ visible, user, onClose, onSaved }: EditProfileModalProps) {
+  const router = useRouter();
   const { setUser } = useAuthStore();
 
   const [nickname, setNickname] = useState(user.nickname);
@@ -160,6 +162,18 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
             maxLength={200}
           />
         </View>
+
+        <TouchableOpacity
+          style={styles.changePasswordButton}
+          onPress={() => {
+            onClose();
+            router.push('/change-password');
+          }}
+        >
+          <Ionicons name="lock-closed-outline" size={18} color="#666" />
+          <Text style={styles.changePasswordText}>비밀번호 변경</Text>
+          <Ionicons name="chevron-forward" size={18} color="#ccc" />
+        </TouchableOpacity>
       </View>
     </BottomSheet>
   );
@@ -243,5 +257,19 @@ const styles = StyleSheet.create({
   bioInput: {
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  changePasswordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    gap: 10,
+  },
+  changePasswordText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
   },
 });

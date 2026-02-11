@@ -39,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="[postId]/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="user/[userId]" />
+        <Stack.Screen name="change-password" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </>
   );

@@ -48,14 +48,16 @@ export default function LoginScreen() {
         <Text style={styles.title}>Kimitter</Text>
         <Text style={styles.subtitle}>가족만을 위한 공간</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="아이디"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.inputInner}
+            placeholder="아이디"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
         <View style={styles.passwordContainer}>
           <TextInput
             style={styles.passwordInput}
@@ -122,15 +124,20 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 40,
   },
-  input: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e0e0e0',
     borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#fafafa',
+  },
+  inputInner: {
+    flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    marginBottom: 12,
-    backgroundColor: '#fafafa',
   },
   passwordContainer: {
     flexDirection: 'row',
