@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CreatePostModal from '../../src/components/CreatePostModal';
+import PostActionSheet from '../../src/components/PostActionSheet';
 import { useCreateModalStore } from '../../src/stores/createModalStore';
 
 interface TabIconProps {
@@ -86,6 +87,8 @@ export default function TabsLayout() {
         visible={createModalVisible}
         onClose={closeCreateModal}
       />
+
+      <PostActionSheet />
     </>
   );
 }

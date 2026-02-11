@@ -9,6 +9,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { Post } from '../types/models';
 import { getFileUrl } from '../config/constants';
+import { useAuthStore } from '../stores/authStore';
+import { usePostActionStore } from '../stores/postActionStore';
 import MediaGallery from './MediaGallery';
 
 interface PostCardProps {
@@ -16,6 +18,10 @@ interface PostCardProps {
   onLikeToggle?: (postId: number, liked: boolean) => void;
   isLiked?: boolean;
 }
+
+const AVATAR_SIZE = 40;
+const AVATAR_GAP = 10;
+const AVATAR_COL = AVATAR_SIZE + AVATAR_GAP;
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -33,6 +39,8 @@ function formatDate(dateStr: string): string {
 
 export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCardProps) {
   const router = useRouter();
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const openAction = usePostActionStore((s) => s.open);
 
   const handleLike = () => {
     onLikeToggle?.(post.id, !isLiked);
@@ -46,55 +54,80 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
     router.push(`/user/${post.user.id}`);
   };
 
+  const handleMore = () => {
+    openAction({
+      post,
+      isLiked,
+      isOwner: currentUserId === post.user.id,
+      onLikeToggle: handleLike,
+    });
+  };
+
   return (
     <View style={styles.card}>
-      <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.header}>
-        <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
-          {post.user.profileImageUrl ? (
-            <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        <View style={styles.headerInfo}>
+      <View style={styles.row}>
+        <View style={styles.avatarCol}>
           <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
-            <Text style={styles.nickname}>{post.user.nickname}</Text>
+            {post.user.profileImageUrl ? (
+              <Image source={{ uri: getFileUrl(post.user.profileImageUrl) }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>{post.user.nickname[0]}</Text>
+              </View>
+            )}
           </TouchableOpacity>
-          <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
         </View>
-      </TouchableOpacity>
-      <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail}>
-        {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
-      </TouchableOpacity>
 
-      <MediaGallery media={post.media} />
+        <View style={styles.contentCol}>
+          <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.headerRow}>
+            <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
+              <Text style={styles.nickname}>{post.user.nickname}</Text>
+            </TouchableOpacity>
+            <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
+            <View style={styles.headerSpacer} />
+            <TouchableOpacity
+              style={styles.moreButton}
+              onPress={handleMore}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            </TouchableOpacity>
+          </TouchableOpacity>
 
-      {post.tags.length > 0 ? (
-        <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.tags}>
-          {post.tags.map(({ tag }) => (
-            <Text key={tag.id} style={styles.tag}>
-              #{tag.name}
-            </Text>
-          ))}
-        </TouchableOpacity>
-      ) : null}
+          <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail}>
+            {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.actions}>
-        <TouchableOpacity activeOpacity={0.7} style={styles.actionButton} onPress={handleLike}>
-          <Ionicons
-            name={isLiked ? 'heart' : 'heart-outline'}
-            size={22}
-            color={isLiked ? '#ff3b30' : '#333'}
-          />
-          <Text style={styles.actionCount}>{post._count.likes}</Text>
+      <View style={styles.belowAvatar}>
+        <MediaGallery media={post.media} />
+
+        {post.tags.length > 0 ? (
+          <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.tags}>
+            {post.tags.map(({ tag }) => (
+              <Text key={tag.id} style={styles.tag}>
+                #{tag.name}
+              </Text>
+            ))}
+          </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity activeOpacity={1} onPress={navigateToDetail} style={styles.actions}>
+          <TouchableOpacity activeOpacity={0.7} style={styles.actionButton} onPress={handleLike}>
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={22}
+              color={isLiked ? '#ff3b30' : '#333'}
+            />
+            <Text style={styles.actionCount}>{post._count.likes}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.7} style={styles.actionButton} onPress={navigateToDetail}>
+            <Ionicons name="chatbubble-outline" size={20} color="#333" />
+            <Text style={styles.actionCount}>{post._count.comments}</Text>
+          </TouchableOpacity>
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.7} style={styles.actionButton} onPress={navigateToDetail}>
-          <Ionicons name="chatbubble-outline" size={20} color="#333" />
-          <Text style={styles.actionCount}>{post._count.comments}</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -102,42 +135,46 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e0e0e0',
   },
-  header: {
+  row: {
     flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+  },
+  avatarCol: {
+    width: AVATAR_COL,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
   },
   avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
     backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
   },
   avatarText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  headerInfo: {
+  contentCol: {
     flex: 1,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 4,
+  },
+  headerSpacer: {
+    flex: 1,
   },
   nickname: {
     fontSize: 15,
@@ -148,17 +185,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
   },
+  moreButton: {
+    padding: 4,
+  },
   content: {
     fontSize: 15,
     color: '#333',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
     lineHeight: 22,
+    paddingBottom: 8,
+  },
+  belowAvatar: {
+    paddingLeft: 16 + AVATAR_COL,
+    paddingRight: 16,
   },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
     paddingTop: 8,
     gap: 6,
   },
@@ -168,7 +210,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 20,
   },

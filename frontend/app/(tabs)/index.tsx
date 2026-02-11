@@ -58,17 +58,19 @@ export default function HomeScreen() {
               onPress={openCreateModal}
               activeOpacity={0.7}
             >
-              {user.profileImageUrl ? (
-                <Image
-                  source={{ uri: getFileUrl(user.profileImageUrl) }}
-                  style={styles.composeAvatar}
-                />
-              ) : (
-                <View style={styles.composeAvatarFallback}>
-                  <Ionicons name="person" size={22} color="#999" />
-                </View>
-              )}
-              <View style={styles.composeTextArea}>
+              <View style={styles.composeAvatarCol}>
+                {user.profileImageUrl ? (
+                  <Image
+                    source={{ uri: getFileUrl(user.profileImageUrl) }}
+                    style={styles.composeAvatar}
+                  />
+                ) : (
+                  <View style={styles.composeAvatarFallback}>
+                    <Ionicons name="person" size={18} color="#999" />
+                  </View>
+                )}
+              </View>
+              <View style={styles.composeContentCol}>
                 <Text style={styles.composeNickname}>{user.nickname}</Text>
                 <Text style={styles.composePlaceholder}>새로운 소식이 있나요?</Text>
               </View>
@@ -134,39 +136,41 @@ const styles = StyleSheet.create({
   },
   composeCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  composeAvatarCol: {
+    width: 50,
+  },
   composeAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#e0e0e0',
   },
   composeAvatarFallback: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  composeTextArea: {
-    marginLeft: 12,
+  composeContentCol: {
     flex: 1,
+    justifyContent: 'center',
   },
   composeNickname: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1a1a1a',
     marginBottom: 2,
   },
   composePlaceholder: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#999',
   },
 });
