@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/stores/authStore';
+import { setLogoutCallback } from '../src/services/api';
 
 export default function RootLayout() {
   const { isLoggedIn, isLoading, restoreSession } = useAuthStore();
@@ -10,6 +11,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     restoreSession();
+    setLogoutCallback(() => {
+      useAuthStore.setState({ user: null, accessToken: null, isLoggedIn: false });
+    });
   }, []);
 
   useEffect(() => {
@@ -30,8 +34,8 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, gestureEnabled: true, gestureResponseDistance: { start: 50 } }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="[postId]" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="user" />
+        <Stack.Screen name="[postId]/index" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="user/[userId]" />
       </Stack>
     </>
   );

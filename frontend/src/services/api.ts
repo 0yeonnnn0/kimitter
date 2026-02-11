@@ -2,6 +2,12 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL, STORAGE_KEYS } from '../config/constants';
 
+let logoutCallback: (() => void) | null = null;
+
+export const setLogoutCallback = (cb: () => void) => {
+  logoutCallback = cb;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: 60000,
@@ -55,6 +61,8 @@ api.interceptors.response.use(
       } catch {
         await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
         await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.USER);
+        if (logoutCallback) logoutCallback();
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
