@@ -11,6 +11,7 @@ import {
 import type { Post } from '../types/models';
 import * as userService from '../services/userService';
 import * as likeService from '../services/likeService';
+import { useFeedStore } from '../stores/feedStore';
 import PostCard from './PostCard';
 
 type TabKey = 'threads' | 'replies' | 'media';
@@ -25,6 +26,13 @@ export default function ProfileTabs({ userId, headerComponent }: ProfileTabsProp
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const lastDeletedPostId = useFeedStore((s) => s.lastDeletedPostId);
+
+  useEffect(() => {
+    if (lastDeletedPostId !== null) {
+      setPosts((prev) => prev.filter((p) => p.id !== lastDeletedPostId));
+    }
+  }, [lastDeletedPostId]);
 
   const fetchTabData = useCallback(async (tab: TabKey) => {
     setLoading(true);
@@ -150,6 +158,7 @@ export default function ProfileTabs({ userId, headerComponent }: ProfileTabsProp
     <FlatList
       data={posts}
       keyExtractor={(item) => String(item.id)}
+      contentContainerStyle={{ flexGrow: 1 }}
       ListHeaderComponent={listHeader}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />

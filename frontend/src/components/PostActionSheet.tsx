@@ -41,7 +41,7 @@ export default function PostActionSheet() {
           try {
             await postService.deletePost(postId);
             removePost(postId);
-            await fetchPosts(true);
+            fetchPosts();
           } catch {
             Alert.alert('오류', '게시물 삭제에 실패했습니다.');
           }

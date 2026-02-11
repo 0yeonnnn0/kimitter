@@ -9,6 +9,7 @@ interface FeedState {
   pagination: Pagination | null;
   isLoading: boolean;
   isRefreshing: boolean;
+  lastDeletedPostId: number | null;
   fetchPosts: (refresh?: boolean) => Promise<void>;
   loadMore: () => Promise<void>;
   addPost: (post: Post) => void;
@@ -22,6 +23,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   pagination: null,
   isLoading: false,
   isRefreshing: false,
+  lastDeletedPostId: null,
 
   fetchPosts: async (refresh = false) => {
     if (refresh) {
@@ -57,7 +59,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     })),
 
   removePost: (postId) =>
-    set((state) => ({ posts: state.posts.filter((p) => p.id !== postId) })),
+    set((state) => ({
+      posts: state.posts.filter((p) => p.id !== postId),
+      lastDeletedPostId: postId,
+    })),
 
   toggleLike: async (postId, liked) => {
     set((state) => ({
