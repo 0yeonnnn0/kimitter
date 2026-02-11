@@ -15,7 +15,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface ImageViewerModalProps {
   visible: boolean;
-  imageUrl: string;
+  imageUrl?: string;
   onClose: () => void;
 }
 
@@ -117,11 +117,17 @@ export default function ImageViewerModal({
           ]}
           {...panResponder.panHandlers}
         >
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.image}
-            resizeMode="contain"
-          />
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.placeholderCircle}>
+              <Ionicons name="person" size={120} color="#999" />
+            </View>
+          )}
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -156,5 +162,13 @@ const styles = StyleSheet.create({
   image: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.7,
+  },
+  placeholderCircle: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#e8e8e8',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -64,8 +64,7 @@ export default function UserProfileScreen() {
         </View>
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => user.profileImageUrl && setImageViewerVisible(true)}
-          disabled={!user.profileImageUrl}
+          onPress={() => setImageViewerVisible(true)}
         >
           {user.profileImageUrl ? (
             <Image source={{ uri: getFileUrl(user.profileImageUrl) }} style={styles.avatar} />
@@ -98,13 +97,11 @@ export default function UserProfileScreen() {
 
       <ProfileTabs userId={user.id} headerComponent={profileHeader} />
 
-      {user.profileImageUrl ? (
-        <ImageViewerModal
-          visible={imageViewerVisible}
-          imageUrl={getFileUrl(user.profileImageUrl)}
-          onClose={() => setImageViewerVisible(false)}
-        />
-      ) : null}
+      <ImageViewerModal
+        visible={imageViewerVisible}
+        imageUrl={user.profileImageUrl ? getFileUrl(user.profileImageUrl) : undefined}
+        onClose={() => setImageViewerVisible(false)}
+      />
     </View>
   );
 }
