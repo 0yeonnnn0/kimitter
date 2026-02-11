@@ -20,9 +20,10 @@
     - `post` 모드: 기존 텍스트 입력 + 미디어 + 태그 (2000자 제한)
     - `notify` 모드: 80자 제한, "모두에게 알림을 보낼 수 있습니다" placeholder, 글자수 표시, 미디어/태그 숨김
   - **게시 버튼 텍스트**: 모드별 분기 ('게시' / '보내기')
-  - **드롭다운 Modal**: 투명 오버레이 + 중앙 메뉴 (create-outline / notifications-outline 아이콘, 선택 항목 체크마크)
+  - **인라인 드롭다운**: Modal 대신 헤더 바로 아래 absolute positioned 드롭다운 (create-outline / notifications-outline 아이콘, 선택 항목 체크마크)
   - **selectMode 함수**: 모드 전환 시 content/tags/media 초기화
-  - **새 스타일**: titleDropdown, notifyBody, notifyInput, charCount, dropdownOverlay, dropdownMenu, dropdownItem, dropdownItemActive, dropdownText, dropdownTextActive, dropdownDivider
+  - **Pressable 래퍼**: 본문 터치 시 드롭다운 자동 닫힘
+  - **새 스타일**: headerWrapper, titleDropdown, notifyBody, notifyInput, charCount, bodyScroll, dropdownMenu (absolute), dropdownItem, dropdownItemActive, dropdownText, dropdownTextActive, dropdownDivider
 
 ## 검증
 - `npx tsc --noEmit` (frontend): 에러 0개

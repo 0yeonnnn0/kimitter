@@ -4,12 +4,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   ActivityIndicator,
   ScrollView,
   Image,
-  Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -198,35 +198,80 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
 
   return (
     <BottomSheet visible={visible} onClose={handleClose} fullScreen>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose}>
-          <Text style={styles.cancelText}>취소</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.titleDropdown}
-          onPress={() => setDropdownVisible(true)}
-        >
-          <Text style={styles.headerTitle}>
-            {mode === 'post' ? '새 글 쓰기' : '알림 보내기'}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color="#1a1a1a" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.submitButtonText}>
-              {mode === 'post' ? '게시' : '보내기'}
+      <View style={styles.headerWrapper}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleClose}>
+            <Text style={styles.cancelText}>취소</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.titleDropdown}
+            onPress={() => setDropdownVisible(!dropdownVisible)}
+          >
+            <Text style={styles.headerTitle}>
+              {mode === 'post' ? '새 글 쓰기' : '알림 보내기'}
             </Text>
-          )}
-        </TouchableOpacity>
+            <Ionicons name="chevron-down" size={16} color="#1a1a1a" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {mode === 'post' ? '게시' : '보내기'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {dropdownVisible ? (
+          <View style={styles.dropdownMenu}>
+            <TouchableOpacity
+              style={[
+                styles.dropdownItem,
+                mode === 'post' && styles.dropdownItemActive,
+              ]}
+              onPress={() => selectMode('post')}
+            >
+              <Ionicons name="create-outline" size={20} color={mode === 'post' ? '#000' : '#666'} />
+              <Text style={[
+                styles.dropdownText,
+                mode === 'post' && styles.dropdownTextActive,
+              ]}>
+                새 글 쓰기
+              </Text>
+              {mode === 'post' ? (
+                <Ionicons name="checkmark" size={18} color="#000" />
+              ) : null}
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity
+              style={[
+                styles.dropdownItem,
+                mode === 'notify' && styles.dropdownItemActive,
+              ]}
+              onPress={() => selectMode('notify')}
+            >
+              <Ionicons name="notifications-outline" size={20} color={mode === 'notify' ? '#000' : '#666'} />
+              <Text style={[
+                styles.dropdownText,
+                mode === 'notify' && styles.dropdownTextActive,
+              ]}>
+                알림 보내기
+              </Text>
+              {mode === 'notify' ? (
+                <Ionicons name="checkmark" size={18} color="#000" />
+              ) : null}
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
 
-      <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
+      <Pressable style={styles.body} onPress={() => setDropdownVisible(false)}>
+      <ScrollView style={styles.bodyScroll} keyboardShouldPersistTaps="handled">
         {mode === 'post' ? (
           <>
             <TextInput
@@ -302,63 +347,15 @@ export default function CreatePostModal({ visible, onClose }: CreatePostModalPro
           </View>
         )}
       </ScrollView>
-      <Modal
-        visible={dropdownVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDropdownVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.dropdownOverlay}
-          activeOpacity={1}
-          onPress={() => setDropdownVisible(false)}
-        >
-          <View style={styles.dropdownMenu}>
-            <TouchableOpacity
-              style={[
-                styles.dropdownItem,
-                mode === 'post' && styles.dropdownItemActive,
-              ]}
-              onPress={() => selectMode('post')}
-            >
-              <Ionicons name="create-outline" size={20} color={mode === 'post' ? '#000' : '#666'} />
-              <Text style={[
-                styles.dropdownText,
-                mode === 'post' && styles.dropdownTextActive,
-              ]}>
-                새 글 쓰기
-              </Text>
-              {mode === 'post' ? (
-                <Ionicons name="checkmark" size={18} color="#000" />
-              ) : null}
-            </TouchableOpacity>
-            <View style={styles.dropdownDivider} />
-            <TouchableOpacity
-              style={[
-                styles.dropdownItem,
-                mode === 'notify' && styles.dropdownItemActive,
-              ]}
-              onPress={() => selectMode('notify')}
-            >
-              <Ionicons name="notifications-outline" size={20} color={mode === 'notify' ? '#000' : '#666'} />
-              <Text style={[
-                styles.dropdownText,
-                mode === 'notify' && styles.dropdownTextActive,
-              ]}>
-                알림 보내기
-              </Text>
-              {mode === 'notify' ? (
-                <Ionicons name="checkmark" size={18} color="#000" />
-              ) : null}
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      </Pressable>
     </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
+  headerWrapper: {
+    zIndex: 10,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -392,6 +389,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   body: {
+    flex: 1,
+  },
+  bodyScroll: {
     flex: 1,
   },
   contentInput: {
@@ -506,21 +506,19 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 8,
   },
-  dropdownOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
     backgroundColor: '#fff',
-    borderRadius: 14,
-    width: 220,
     paddingVertical: 4,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 8,
   },
   dropdownItem: {
