@@ -12,10 +12,12 @@
 | **백엔드** | Node.js, Express.js, TypeScript |
 | **데이터베이스** | PostgreSQL 14+, Prisma ORM |
 | **인증** | JWT (Access + Refresh Token), bcryptjs |
-| **파일 저장** | 로컬 파일시스템 (NAS `/media/uploads/`) |
+| **파일 저장** | NAS 로컬 파일시스템 (`/volume1/docker/kimitter/uploads/`) |
 | **푸시 알림** | Expo Push Notification (expo-notifications, expo-server-sdk) |
 | **컨테이너** | Docker, Docker Compose |
 | **빌드/배포** | EAS Build (expo-dev-client), APK/iOS 시뮬레이터 |
+| **외부 접속** | Cloudflare Tunnel (Zero Trust) |
+| **도메인** | `kimitter.yeonnnn.xyz` |
 | **테스트** | Jest + ts-jest |
 | **패키지 매니저** | npm |
 
@@ -130,7 +132,9 @@ example/
 │   │   └── test/                   # 테스트 헬퍼
 │   ├── prisma/
 │   │   └── schema.prisma           # DB 스키마 (11개 모델)
-│   ├── Dockerfile                  # Multi-stage 빌드
+│   ├── scripts/
+│   │   └── backup-db.sh            # PostgreSQL DB 자동 백업 스크립트
+│   ├── Dockerfile                  # Multi-stage 빌드 (node:20-slim)
 │   ├── .dockerignore
 │   ├── docker-compose.yml          # PostgreSQL + Backend 서비스
 │   ├── jest.config.ts
@@ -180,7 +184,7 @@ example/
 
 ### 백엔드 Docker 컨테이너화
 
-Multi-stage Dockerfile로 빌드 최적화. `docker-compose.yml`로 PostgreSQL + Backend를 함께 관리.
+Multi-stage Dockerfile(`node:20-slim` 기반)로 빌드 최적화. `docker-compose.yml`로 PostgreSQL + Backend를 함께 관리.
 
 ```bash
 cd backend
@@ -223,6 +227,74 @@ npx expo start --dev-client
 | `development-device` | 실기기 개발 (APK) | Android |
 | `preview` | 내부 배포용 APK | Android |
 | `production` | 스토어 배포 | iOS / Android |
+
+### NAS 배포 (Synology)
+
+Synology NAS의 Container Manager를 사용하여 프로덕션 배포. Docker Hub에서 이미지를 pull하여 실행.
+
+**배포 아키텍처:**
+
+```
+[Expo 앱] → https://kimitter.yeonnnn.xyz → [Cloudflare Tunnel] → [Express :3000] → [PostgreSQL :5432]
+```
+
+**배포 순서:**
+
+```bash
+# 1. Mac에서 이미지 빌드 & Docker Hub Push
+cd backend
+docker buildx build --platform linux/amd64 --no-cache \
+  -t dusehd1/kimitter-backend:latest --push .
+
+# 2. NAS Container Manager에서 프로젝트 "빌드" 클릭 (이미지 pull + 재시작)
+```
+
+**NAS 파일 구조:**
+
+```
+/volume1/docker/kimitter/
+├── docker-compose.yml          # 프로덕션 오케스트레이션
+├── .env.production             # 프로덕션 환경변수
+├── postgres/                   # PostgreSQL 데이터 (자동 생성)
+├── uploads/                    # 업로드 파일 저장
+├── backups/                    # DB 백업 파일
+└── backup-db.sh                # DB 백업 스크립트
+```
+
+**프로덕션 docker-compose 주요 설정:**
+
+- 이미지: `dusehd1/kimitter-backend:latest` (Docker Hub)
+- 네트워크: `kimitter-net` (컨테이너 간 통신용 명시적 bridge 네트워크)
+- 볼륨: NAS 로컬 바인드 마운트 (`/volume1/docker/kimitter/`)
+- 자동 재시작: `restart: unless-stopped`
+
+### 외부 접속 (Cloudflare Tunnel)
+
+이중 NAT 환경에서 포트포워딩 없이 외부 접속을 지원하기 위해 Cloudflare Tunnel을 사용.
+
+- **도메인**: `kimitter.yeonnnn.xyz`
+- **DNS**: Cloudflare (가비아에서 네임서버 위임)
+- **장점**: 포트포워딩 불필요, 자동 HTTPS, 유동 IP 대응, DDoS 방어, 집 IP 미노출
+- **구성**: NAS Docker에서 `cloudflared` 컨테이너가 Cloudflare에 아웃바운드 터널 연결
+
+### DB 백업
+
+NAS Task Scheduler를 통해 매일 새벽 2시 자동 백업 실행.
+
+```bash
+# 수동 백업 실행
+sudo /volume1/docker/kimitter/backup-db.sh
+
+# 백업 파일 위치
+/volume1/docker/kimitter/backups/db_YYYYMMDD_HHMMSS.sql.gz
+
+# 복원
+gunzip -c backups/db_20260212_020000.sql.gz | \
+  docker exec -i kimitter-db psql -U family_user -d family_threads
+```
+
+- 30일 이상 된 백업 자동 삭제
+- 백업 로그: `/volume1/docker/kimitter/backups/backup.log`
 
 ---
 
@@ -461,6 +533,9 @@ eas build --profile preview --platform android            # 배포용 APK
 | expo-dev-client | Expo Go의 네이티브 모듈 제한 해결 |
 | Threads 스타일 레이아웃 | 2-column 구조로 아바타와 콘텐츠 분리, 가독성 향상 |
 | 이미지 자동 압축 | 업로드 전 리사이징/JPEG 변환으로 네트워크 부하 감소 |
+| node:20-slim (Debian) | Alpine에서 Prisma 엔진 OpenSSL 호환성 문제 해결 |
+| Cloudflare Tunnel | 이중 NAT 환경에서 포트포워딩 없이 외부 접속, 자동 HTTPS |
+| 명시적 Docker 네트워크 | Synology Container Manager에서 컨테이너 간 DNS 통신 보장 |
 
 ---
 
@@ -475,9 +550,14 @@ eas build --profile preview --platform android            # 배포용 APK
 - [x] 게시물 액션 시트 (좋아요/댓글/삭제)
 - [x] 홈 상단 compose prompt
 - [x] 기본 아바타 person 아이콘 통일
-- [ ] NAS 배포 설정 (Nginx 리버스 프록시)
+- [x] NAS 배포 설정 (Synology Container Manager + Cloudflare Tunnel)
+- [x] 외부 도메인 연결 (kimitter.yeonnnn.xyz)
+- [x] DB 자동 백업 스크립트
 - [ ] Admin UI 화면 구현 (웹 또는 앱 내)
 - [ ] 댓글/답글에 좋아요 UI 추가
 - [ ] 동영상 재생 UI 개선
 - [ ] 게시물 수정 기능 프론트엔드 구현
 - [ ] 게시물 상세 페이지 2-column 레이아웃 적용
+- [ ] CORS 제한 설정 (현재 완전 개방)
+- [ ] Nginx 리버스 프록시 (선택적 — Cloudflare Tunnel로 대체 가능)
+- [ ] Rate Limiting
