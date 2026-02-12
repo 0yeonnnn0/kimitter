@@ -23,6 +23,9 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://kimitter.yeonnnn.xyz/api"
+      },
       "android": {
         "buildType": "apk"
       }
