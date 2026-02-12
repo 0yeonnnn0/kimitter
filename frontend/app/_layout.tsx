@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/stores/authStore';
 import { setLogoutCallback } from '../src/services/api';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+import ErrorToast from '../src/components/ErrorToast';
 
 export default function RootLayout() {
   const { isLoggedIn, isLoading, restoreSession } = useAuthStore();
@@ -41,6 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="user/[userId]" />
         <Stack.Screen name="change-password" options={{ animation: 'slide_from_right' }} />
       </Stack>
+      <ErrorToast />
     </>
   );
 }

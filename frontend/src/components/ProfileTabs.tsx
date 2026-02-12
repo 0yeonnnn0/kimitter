@@ -19,9 +19,10 @@ type TabKey = 'threads' | 'replies' | 'media';
 interface ProfileTabsProps {
   userId: number;
   headerComponent: React.ReactElement;
+  refreshTrigger?: number;
 }
 
-export default function ProfileTabs({ userId, headerComponent }: ProfileTabsProps) {
+export default function ProfileTabs({ userId, headerComponent, refreshTrigger }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('threads');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +58,12 @@ export default function ProfileTabs({ userId, headerComponent }: ProfileTabsProp
   useEffect(() => {
     fetchTabData(activeTab);
   }, [activeTab, fetchTabData]);
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchTabData(activeTab);
+    }
+  }, [refreshTrigger, fetchTabData, activeTab]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL, STORAGE_KEYS } from '../config/constants';
+import { useErrorStore } from '../stores/errorStore';
 
 let logoutCallback: (() => void) | null = null;
 
@@ -63,12 +64,16 @@ api.interceptors.response.use(
         await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
         await SecureStore.deleteItemAsync(STORAGE_KEYS.USER);
         if (logoutCallback) logoutCallback();
+        useErrorStore.getState().show('세션이 만료되었습니다.');
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
       }
     }
 
+    const errorMessage = (error.response?.data as { error?: string })?.error
+      || (error.message === 'Network Error' ? '네트워크 오류가 발생했습니다.' : '오류가 발생했습니다.');
+    useErrorStore.getState().show(errorMessage);
     return Promise.reject(error);
   },
 );

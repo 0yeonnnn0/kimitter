@@ -13,7 +13,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as postService from '../../src/services/postService';
 import * as tagService from '../../src/services/tagService';
@@ -104,9 +104,11 @@ export default function SearchScreen() {
     setMonthPickerVisible(false);
   }, [galleryRows]);
 
-  useEffect(() => {
-    loadAllPosts();
-  }, [loadAllPosts]);
+   useFocusEffect(
+     useCallback(() => {
+       loadAllPosts();
+     }, [loadAllPosts])
+   );
 
   const toggleMode = (next: SearchMode) => {
     if (mode === next) {
@@ -412,6 +414,7 @@ export default function SearchScreen() {
         <FlatList
           data={tags}
           keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={{ flexGrow: 1 }}
           renderItem={renderTagItem}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -425,6 +428,7 @@ export default function SearchScreen() {
         <FlatList
           data={users}
           keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={{ flexGrow: 1 }}
           renderItem={renderUserItem}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -438,6 +442,7 @@ export default function SearchScreen() {
         <FlatList
           data={posts}
           keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={{ flexGrow: 1 }}
           renderItem={({ item }) => (
             <PostCard post={item} isLiked={item.isLiked} onLikeToggle={handleLikeToggle} />
           )}
@@ -458,6 +463,7 @@ export default function SearchScreen() {
         ref={galleryListRef}
         data={galleryRows}
         keyExtractor={(item) => item.key}
+        contentContainerStyle={{ flexGrow: 1 }}
         renderItem={renderGalleryItem}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />

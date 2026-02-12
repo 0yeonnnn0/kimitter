@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -22,6 +23,13 @@ export default function ProfileScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshTrigger((prev) => prev + 1);
+    }, [])
+  );
 
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
@@ -108,7 +116,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <ProfileTabs userId={user.id} headerComponent={profileHeader} />
+      <ProfileTabs userId={user.id} headerComponent={profileHeader} refreshTrigger={refreshTrigger} />
 
       <EditProfileModal
         visible={editModalVisible}
