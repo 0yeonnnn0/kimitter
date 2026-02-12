@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CreatePostModal from '../../src/components/CreatePostModal';
 import PostActionSheet from '../../src/components/PostActionSheet';
 import { useCreateModalStore } from '../../src/stores/createModalStore';
@@ -25,6 +26,7 @@ function TabIcon({ focused, iconName, iconNameFocused }: TabIconProps) {
 
 export default function TabsLayout() {
   const { visible: createModalVisible, open: openCreateModal, close: closeCreateModal } = useCreateModalStore();
+  const insets = useSafeAreaInsets();
 
   return (
     <>
@@ -32,7 +34,11 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarShowLabel: false,
-          tabBarStyle: styles.tabBar,
+          tabBarStyle: {
+            ...styles.tabBar,
+            paddingBottom: Math.max(insets.bottom, 8),
+            height: 56 + Math.max(insets.bottom, 8),
+          },
         }}
       >
         <Tabs.Screen
@@ -95,9 +101,7 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 80,
     paddingTop: 8,
-    paddingBottom: 16,
     backgroundColor: '#fff',
     borderTopColor: '#e0e0e0',
   },
