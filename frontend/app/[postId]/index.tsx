@@ -159,6 +159,7 @@ export default function PostDetailScreen() {
       <FlatList
         data={comments}
         keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }

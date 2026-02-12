@@ -47,6 +47,7 @@ export default function HomeScreen() {
       <FlatList
         data={posts}
         keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{ flexGrow: 1 }}
         renderItem={({ item }) => (
           <PostCard
             post={item}
