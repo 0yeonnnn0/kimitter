@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: kimitter-db
+    environment:
+      POSTGRES_USER: family_user
+      POSTGRES_PASSWORD: family_secret_pw
+      POSTGRES_DB: family_threads
+    ports:
+      - '5432:5432'
+    volumes:
+      - /volume1/docker/kimitter/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    image: dusehd1/kimitter-backend:latest
+    container_name: kimitter-backend
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://family_user:family_secret_pw@postgres:5432/family_threads
+    volumes:
+      - /volume1/docker/kimitter/uploads:/app/uploads
+    depends_on:
+      - postgres
+    restart: unless-stopped
