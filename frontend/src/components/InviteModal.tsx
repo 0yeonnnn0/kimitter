@@ -65,7 +65,7 @@ export default function InviteModal({ visible, onClose }: InviteModalProps) {
   };
 
   return (
-    <BottomSheet visible={visible} onClose={handleClose}>
+    <BottomSheet visible={visible} onClose={handleClose} fullScreen>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleClose}>
           <Text style={styles.cancelText}>취소</Text>
