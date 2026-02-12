@@ -9,10 +9,12 @@ services:
       POSTGRES_PASSWORD: family_secret_pw
       POSTGRES_DB: family_threads
     ports:
-      - '5432:5432'
+      - '5432'
     volumes:
       - /volume1/docker/kimitter/postgres:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      - kimitter-net
 
   backend:
     image: dusehd1/kimitter-backend:latest
@@ -29,3 +31,9 @@ services:
     depends_on:
       - postgres
     restart: unless-stopped
+    networks:
+      - kimitter-net
+
+networks:
+  kimitter-net:
+    driver: bridge
