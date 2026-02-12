@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   PanResponder,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -73,6 +74,18 @@ export default function BottomSheet({
       ]).start();
     }
   }, [visible, translateY, backdropOpacity]);
+
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'android') return;
+
+    const handler = () => {
+      animateClose();
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => subscription.remove();
+  }, [visible]);
 
   const animateClose = () => {
     Animated.parallel([

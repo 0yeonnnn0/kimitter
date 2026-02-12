@@ -14,12 +14,18 @@ import { useRouter } from 'expo-router';
 import { useNotificationStore } from '../../src/stores/notificationStore';
 import type { Notification } from '../../src/types/models';
 
+type ActivityTab = 'activity' | 'notification';
+
+const ACTIVITY_TYPES: Notification['notificationType'][] = [
+  'COMMENT', 'REPLY', 'LIKE', 'POST_MENTION',
+];
+
 const NOTIFICATION_LABELS: Record<Notification['notificationType'], string> = {
   POST_MENTION: '회원님을 멘션했습니다',
   COMMENT: '댓글을 달았습니다',
   REPLY: '답글을 달았습니다',
   LIKE: '좋아요를 눌렀습니다',
-  CUSTOM: '알림',
+  CUSTOM: '',
 };
 
 function formatDate(dateStr: string): string {
@@ -39,6 +45,7 @@ export default function ActivityScreen() {
     useNotificationStore();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<ActivityTab>('activity');
 
   useEffect(() => {
     fetchNotifications();
@@ -64,12 +71,77 @@ export default function ActivityScreen() {
     }
   };
 
+  const activityItems = notifications.filter((n) =>
+    ACTIVITY_TYPES.includes(n.notificationType),
+  );
+  const notificationItems = notifications.filter((n) =>
+    n.notificationType === 'CUSTOM',
+  );
+
+  const currentData = activeTab === 'activity' ? activityItems : notificationItems;
+  const activityUnread = activityItems.filter((n) => !n.isRead).length;
+  const notificationUnread = notificationItems.filter((n) => !n.isRead).length;
+
+  const renderActivityItem = ({ item }: { item: Notification }) => (
+    <TouchableOpacity
+      style={[styles.item, !item.isRead && styles.itemUnread]}
+      onPress={() => handlePress(item)}
+    >
+      {item.sender.profileImageUrl ? (
+        <Image
+          source={{ uri: getFileUrl(item.sender.profileImageUrl) }}
+          style={styles.itemAvatarImage}
+        />
+      ) : (
+        <View style={styles.itemAvatar}>
+          <Ionicons name="person" size={20} color="#999" />
+        </View>
+      )}
+      <View style={styles.itemBody}>
+        <Text style={styles.itemText}>
+          <Text style={styles.itemNickname}>{item.sender.nickname}</Text>
+          {' '}
+          {NOTIFICATION_LABELS[item.notificationType]}
+        </Text>
+        {item.message ? (
+          <Text style={styles.itemMessage} numberOfLines={1}>
+            {item.message}
+          </Text>
+        ) : null}
+        <Text style={styles.itemDate}>{formatDate(item.createdAt)}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderNotificationItem = ({ item }: { item: Notification }) => (
+    <TouchableOpacity
+      style={[styles.item, !item.isRead && styles.itemUnread]}
+      onPress={() => handlePress(item)}
+    >
+      {item.sender.profileImageUrl ? (
+        <Image
+          source={{ uri: getFileUrl(item.sender.profileImageUrl) }}
+          style={styles.itemAvatarImage}
+        />
+      ) : (
+        <View style={styles.itemAvatar}>
+          <Ionicons name="notifications" size={20} color="#999" />
+        </View>
+      )}
+      <View style={styles.itemBody}>
+        <Text style={styles.itemNickname}>{item.sender.nickname}</Text>
+        {item.message ? (
+          <Text style={styles.itemText}>{item.message}</Text>
+        ) : null}
+        <Text style={styles.itemDate}>{formatDate(item.createdAt)}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          활동 {unreadCount > 0 ? `(${unreadCount})` : ''}
-        </Text>
+        <Text style={styles.headerTitle}>활동</Text>
         {unreadCount > 0 ? (
           <TouchableOpacity onPress={markAllRead}>
             <Text style={styles.readAllButton}>모두 읽음</Text>
@@ -77,46 +149,50 @@ export default function ActivityScreen() {
         ) : null}
       </View>
 
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'activity' && styles.tabActive]}
+          onPress={() => setActiveTab('activity')}
+        >
+          <Text style={[styles.tabText, activeTab === 'activity' && styles.tabTextActive]}>
+            활동
+          </Text>
+          {activityUnread > 0 ? (
+            <View style={styles.tabBadge}>
+              <Text style={styles.tabBadgeText}>{activityUnread}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'notification' && styles.tabActive]}
+          onPress={() => setActiveTab('notification')}
+        >
+          <Text style={[styles.tabText, activeTab === 'notification' && styles.tabTextActive]}>
+            알림
+          </Text>
+          {notificationUnread > 0 ? (
+            <View style={styles.tabBadge}>
+              <Text style={styles.tabBadgeText}>{notificationUnread}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={notifications}
+        data={currentData}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.item, !item.isRead && styles.itemUnread]}
-            onPress={() => handlePress(item)}
-          >
-            {item.sender.profileImageUrl ? (
-              <Image
-                source={{ uri: getFileUrl(item.sender.profileImageUrl) }}
-                style={styles.itemAvatarImage}
-              />
-            ) : (
-              <View style={styles.itemAvatar}>
-                <Ionicons name="person" size={20} color="#999" />
-              </View>
-            )}
-            <View style={styles.itemBody}>
-              <Text style={styles.itemText}>
-                <Text style={styles.itemNickname}>{item.sender.nickname}</Text>
-                {' '}
-                {NOTIFICATION_LABELS[item.notificationType]}
-              </Text>
-              {item.message ? (
-                <Text style={styles.itemMessage} numberOfLines={1}>
-                  {item.message}
-                </Text>
-              ) : null}
-              <Text style={styles.itemDate}>{formatDate(item.createdAt)}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={activeTab === 'activity' ? renderActivityItem : renderNotificationItem}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>새로운 활동이 없습니다.</Text>
+            <Text style={styles.emptyText}>
+              {activeTab === 'activity'
+                ? '새로운 활동이 없습니다.'
+                : '받은 알림이 없습니다.'}
+            </Text>
           </View>
         }
       />
@@ -135,10 +211,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 72,
-    paddingBottom: 16,
+    paddingBottom: 12,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   headerTitle: {
     fontSize: 22,
@@ -148,6 +222,48 @@ const styles = StyleSheet.create({
   readAllButton: {
     color: '#000',
     fontSize: 15,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#1a1a1a',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#999',
+  },
+  tabTextActive: {
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  tabBadge: {
+    backgroundColor: '#ff3b30',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  tabBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   item: {
     flexDirection: 'row',

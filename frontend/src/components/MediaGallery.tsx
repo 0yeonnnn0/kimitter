@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
+  Text,
   Image,
   TouchableOpacity,
   StyleSheet,
@@ -8,6 +9,8 @@ import {
   Modal,
   Dimensions,
   ActivityIndicator,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PostMedia } from '../types/models';
@@ -24,6 +27,7 @@ const MAX_HEIGHT_MULTI = 360;
 interface MediaGalleryProps {
   media: PostMedia[];
   paddingLeft?: number;
+  onPressBackground?: () => void;
 }
 
 interface ImageSize {
@@ -42,7 +46,248 @@ function clampHeight(
   return Math.round(Math.max(MIN_HEIGHT, Math.min(raw, maxHeight)));
 }
 
-export default function MediaGallery({ media, paddingLeft }: MediaGalleryProps) {
+const DISMISS_THRESHOLD = 320;
+
+interface FullscreenViewerProps {
+  media: PostMedia[];
+  initialIndex: number;
+  onClose: () => void;
+}
+
+function FullscreenViewer({ media, initialIndex, onClose }: FullscreenViewerProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const indexRef = useRef(initialIndex);
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const bgOpacity = useRef(new Animated.Value(1)).current;
+  const lastTapRef = useRef(0);
+  const zoomedRef = useRef(false);
+  const currentScaleRef = useRef(1);
+  const pinchBaseDistRef = useRef(0);
+  const pinchScaleRef = useRef(1);
+  const isPinchingRef = useRef(false);
+  const panOffsetX = useRef(0);
+  const panOffsetY = useRef(0);
+  const isMulti = media.length > 1;
+
+  const clampPan = (x: number, y: number) => {
+    const s = currentScaleRef.current;
+    const maxX = (SCREEN_WIDTH * (s - 1)) / 2;
+    const maxY = (SCREEN_HEIGHT * 0.8 * (s - 1)) / 2;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+  };
+
+  const resetZoom = () => {
+    zoomedRef.current = false;
+    currentScaleRef.current = 1;
+    panOffsetX.current = 0;
+    panOffsetY.current = 0;
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        if (!zoomedRef.current) {
+          translateX.setValue(0);
+          translateY.setValue(0);
+        }
+        isPinchingRef.current = false;
+        pinchBaseDistRef.current = 0;
+      },
+      onPanResponderMove: (e, gs) => {
+        const touches = e.nativeEvent.touches;
+
+        if (touches && touches.length >= 2) {
+          isPinchingRef.current = true;
+          const dx = touches[0].pageX - touches[1].pageX;
+          const dy = touches[0].pageY - touches[1].pageY;
+          const touchDist = Math.sqrt(dx * dx + dy * dy);
+
+          if (pinchBaseDistRef.current === 0) {
+            pinchBaseDistRef.current = touchDist;
+            return;
+          }
+
+          const ratio = touchDist / pinchBaseDistRef.current;
+          const newScale = Math.max(1, Math.min(currentScaleRef.current * ratio, 4));
+          scaleAnim.setValue(newScale);
+          pinchScaleRef.current = newScale;
+          return;
+        }
+
+        if (isPinchingRef.current) return;
+
+        if (zoomedRef.current) {
+          const clamped = clampPan(
+            panOffsetX.current + gs.dx,
+            panOffsetY.current + gs.dy,
+          );
+          translateX.setValue(clamped.x);
+          translateY.setValue(clamped.y);
+          return;
+        }
+
+        translateX.setValue(gs.dx);
+        translateY.setValue(gs.dy);
+        const d = Math.sqrt(gs.dx * gs.dx + gs.dy * gs.dy);
+        bgOpacity.setValue(1 - Math.min(d / DISMISS_THRESHOLD, 1) * 0.6);
+      },
+      onPanResponderRelease: (_e, gs) => {
+        if (isPinchingRef.current) {
+          isPinchingRef.current = false;
+          currentScaleRef.current = pinchScaleRef.current;
+          zoomedRef.current = currentScaleRef.current > 1.05;
+          pinchBaseDistRef.current = 0;
+
+          if (currentScaleRef.current < 1.1) {
+            resetZoom();
+            Animated.parallel([
+              Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 7 }),
+              Animated.spring(translateX, { toValue: 0, useNativeDriver: true, friction: 7 }),
+              Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 7 }),
+            ]).start();
+          }
+          return;
+        }
+
+        pinchBaseDistRef.current = 0;
+        const dist = Math.sqrt(gs.dx * gs.dx + gs.dy * gs.dy);
+        const speed = Math.sqrt(gs.vx * gs.vx + gs.vy * gs.vy);
+
+        if (zoomedRef.current) {
+          if (dist < 10) {
+            const now = Date.now();
+            if (now - lastTapRef.current < 300) {
+              resetZoom();
+              Animated.parallel([
+                Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 7 }),
+                Animated.spring(translateX, { toValue: 0, useNativeDriver: true, friction: 7 }),
+                Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 7 }),
+              ]).start();
+              lastTapRef.current = 0;
+            } else {
+              lastTapRef.current = now;
+            }
+          } else {
+            const clamped = clampPan(
+              panOffsetX.current + gs.dx,
+              panOffsetY.current + gs.dy,
+            );
+            panOffsetX.current = clamped.x;
+            panOffsetY.current = clamped.y;
+          }
+          return;
+        }
+
+        if (dist < 10) {
+          const now = Date.now();
+          if (now - lastTapRef.current < 300) {
+            zoomedRef.current = true;
+            currentScaleRef.current = 2.5;
+            Animated.spring(scaleAnim, {
+              toValue: 2.5,
+              useNativeDriver: true,
+              friction: 7,
+            }).start();
+            lastTapRef.current = 0;
+          } else {
+            lastTapRef.current = now;
+          }
+          return;
+        }
+
+        if (dist > DISMISS_THRESHOLD || speed > 1.2) {
+          const exitDist = Math.max(SCREEN_WIDTH, SCREEN_HEIGHT);
+          const angle = Math.atan2(gs.dy, gs.dx);
+          Animated.parallel([
+            Animated.timing(translateX, {
+              toValue: Math.cos(angle) * exitDist,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(translateY, {
+              toValue: Math.sin(angle) * exitDist,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(bgOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start(() => onClose());
+          return;
+        }
+
+        if (isMulti && Math.abs(gs.dx) > 40 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5) {
+          const idx = indexRef.current;
+          if (gs.dx < 0 && idx < media.length - 1) {
+            indexRef.current = idx + 1;
+            setCurrentIndex(idx + 1);
+          } else if (gs.dx > 0 && idx > 0) {
+            indexRef.current = idx - 1;
+            setCurrentIndex(idx - 1);
+          }
+          resetZoom();
+          scaleAnim.setValue(1);
+        }
+
+        Animated.parallel([
+          Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 6 }),
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 6 }),
+          Animated.timing(bgOpacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+        ]).start();
+      },
+    }),
+  ).current;
+
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Animated.View style={[styles.modalOverlay, { opacity: bgOpacity }]} />
+      <View style={styles.modalContent}>
+        <Animated.View
+          style={[
+            styles.viewerContainer,
+            { transform: [{ translateX }, { translateY }, { scale: scaleAnim }] },
+          ]}
+          {...panResponder.panHandlers}
+        >
+          <Image
+            source={{ uri: getFileUrl(media[currentIndex].fileUrl) }}
+            style={styles.fullscreenImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
+
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Ionicons name="close" size={28} color="#fff" />
+        </TouchableOpacity>
+
+        {isMulti ? (
+          <View style={styles.pageIndicator}>
+            <Text style={styles.pageText}>
+              {currentIndex + 1} / {media.length}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    </Modal>
+  );
+}
+
+export default function MediaGallery({ media, paddingLeft, onPressBackground }: MediaGalleryProps) {
   const leftPad = paddingLeft ?? HORIZONTAL_PADDING;
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [sizes, setSizes] = useState<Record<number, ImageSize>>({});
@@ -85,7 +330,7 @@ export default function MediaGallery({ media, paddingLeft }: MediaGalleryProps) 
     : null;
 
   return (
-    <View>
+    <TouchableOpacity activeOpacity={1} onPress={onPressBackground}>
       {rowHeight === null ? (
         <View
           style={[
@@ -104,6 +349,7 @@ export default function MediaGallery({ media, paddingLeft }: MediaGalleryProps) 
       ) : (
         <ScrollView
           horizontal
+          scrollEnabled={!isSingle}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingLeft: leftPad, paddingRight: HORIZONTAL_PADDING, gap: IMAGE_GAP }}
         >
@@ -123,42 +369,14 @@ export default function MediaGallery({ media, paddingLeft }: MediaGalleryProps) 
         </ScrollView>
       )}
 
-      <Modal visible={selectedIndex !== null} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setSelectedIndex(null)}
-          >
-            <Ionicons name="close" size={28} color="#fff" />
-          </TouchableOpacity>
-
-          {selectedIndex !== null ? (
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              contentOffset={{ x: selectedIndex * SCREEN_WIDTH, y: 0 }}
-            >
-              {media.map((m) => (
-                <View key={m.id} style={styles.fullscreenSlide}>
-                  <Image
-                    source={{ uri: getFileUrl(m.fileUrl) }}
-                    style={styles.fullscreenImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          ) : null}
-
-          <TouchableOpacity
-            style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={() => setSelectedIndex(null)}
-          />
-        </View>
-      </Modal>
-    </View>
+      {selectedIndex !== null ? (
+        <FullscreenViewer
+          media={media}
+          initialIndex={selectedIndex}
+          onClose={() => setSelectedIndex(null)}
+        />
+      ) : null}
+    </TouchableOpacity>
   );
 }
 
@@ -170,13 +388,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    justifyContent: 'center',
-  },
-  modalBackground: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: -1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  viewerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   closeButton: {
     position: 'absolute',
@@ -185,14 +406,21 @@ const styles = StyleSheet.create({
     zIndex: 10,
     padding: 8,
   },
-  fullscreenSlide: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   fullscreenImage: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.8,
+  },
+  pageIndicator: {
+    position: 'absolute',
+    bottom: 60,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  pageText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });

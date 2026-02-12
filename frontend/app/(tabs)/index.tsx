@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -8,25 +8,52 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
+  BackHandler,
+  ToastAndroid,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useFeedStore } from '../../src/stores/feedStore';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useCreateModalStore } from '../../src/stores/createModalStore';
 import { getFileUrl } from '../../src/config/constants';
 import PostCard from '../../src/components/PostCard';
+import HomeSidebar from '../../src/components/HomeSidebar';
 
 export default function HomeScreen() {
   const { posts, isLoading, isRefreshing, fetchPosts, loadMore, toggleLike } = useFeedStore();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const openCreateModal = useCreateModalStore((s) => s.open);
+  const router = useRouter();
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+
+  const lastBackPress = useRef(0);
 
   useEffect(() => {
     if (isLoggedIn) {
       fetchPosts();
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const handler = () => {
+      const now = Date.now();
+      if (now - lastBackPress.current < 2000) {
+        BackHandler.exitApp();
+        return true;
+      }
+      lastBackPress.current = now;
+      ToastAndroid.show('한 번 더 누르면 종료됩니다', ToastAndroid.SHORT);
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => subscription.remove();
+  }, []);
 
   const handleLikeToggle = useCallback(
     (postId: number, liked: boolean) => {
@@ -43,6 +70,14 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Kimitter</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/search')} style={styles.headerIcon}>
+            <Ionicons name="search-outline" size={22} color="#1a1a1a" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSidebarVisible(true)} style={styles.headerIcon}>
+            <Ionicons name="menu-outline" size={24} color="#1a1a1a" />
+          </TouchableOpacity>
+        </View>
       </View>
       <FlatList
         data={posts}
@@ -100,6 +135,11 @@ export default function HomeScreen() {
           ) : null
         }
       />
+
+      <HomeSidebar
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+      />
     </View>
   );
 }
@@ -110,6 +150,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#fff',
     paddingTop: 72,
     paddingBottom: 16,
@@ -121,6 +164,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#1a1a1a',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIcon: {
+    padding: 4,
   },
   empty: {
     paddingTop: 80,

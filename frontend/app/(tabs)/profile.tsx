@@ -6,8 +6,6 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -16,13 +14,14 @@ import ProfileTabs from '../../src/components/ProfileTabs';
 import EditProfileModal from '../../src/components/EditProfileModal';
 import InviteModal from '../../src/components/InviteModal';
 import ImageViewerModal from '../../src/components/ImageViewerModal';
+import SidebarMenu from '../../src/components/SidebarMenu';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuthStore();
-  const [loggingOut, setLoggingOut] = useState(false);
+  const { user } = useAuthStore();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useFocusEffect(
@@ -30,24 +29,6 @@ export default function ProfileScreen() {
       setRefreshTrigger((prev) => prev + 1);
     }, [])
   );
-
-  const handleLogout = () => {
-    Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '로그아웃',
-        style: 'destructive',
-        onPress: async () => {
-          setLoggingOut(true);
-          try {
-            await logout();
-          } finally {
-            setLoggingOut(false);
-          }
-        },
-      },
-    ]);
-  };
 
   if (!user) return null;
 
@@ -107,12 +88,8 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <View style={styles.headerSide} />
         <Text style={styles.headerTitle}>{user.nickname}</Text>
-        <TouchableOpacity onPress={handleLogout} style={styles.headerSide} disabled={loggingOut}>
-          {loggingOut ? (
-            <ActivityIndicator size="small" color="#ff3b30" />
-          ) : (
-            <Ionicons name="log-out-outline" size={24} color="#ff3b30" />
-          )}
+        <TouchableOpacity onPress={() => setSidebarVisible(true)} style={styles.headerSide}>
+          <Ionicons name="settings-outline" size={22} color="#1a1a1a" />
         </TouchableOpacity>
       </View>
 
@@ -136,6 +113,12 @@ export default function ProfileScreen() {
         visible={imageViewerVisible}
         imageUrl={user.profileImageUrl ? getFileUrl(user.profileImageUrl) : undefined}
         onClose={() => setImageViewerVisible(false)}
+      />
+
+      <SidebarMenu
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+        user={user}
       />
     </View>
   );

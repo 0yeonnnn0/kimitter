@@ -15,3 +15,6 @@ interface InviteResult {
 
 export const inviteByEmail = (email: string) =>
   api.post<ApiResponse<InviteResult>>('/admin/invite', { email });
+
+export const getAllUsers = () =>
+  api.get<ApiResponse<import('../types/models').User[]>>('/admin/users');

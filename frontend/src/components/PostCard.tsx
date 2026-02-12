@@ -101,7 +101,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
         </View>
       </View>
 
-      <MediaGallery media={post.media} paddingLeft={SIDE_PADDING + AVATAR_COL} />
+      <MediaGallery media={post.media} paddingLeft={SIDE_PADDING + AVATAR_COL} onPressBackground={navigateToDetail} />
 
       <View style={styles.belowAvatar}>
         {post.tags.length > 0 ? (
