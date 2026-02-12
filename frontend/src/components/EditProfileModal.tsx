@@ -98,8 +98,8 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
 
   const currentImageUrl = imageUri ?? (user.profileImageUrl ? getFileUrl(user.profileImageUrl) : null);
 
-  return (
-    <BottomSheet visible={visible} onClose={onClose}>
+   return (
+     <BottomSheet visible={visible} onClose={onClose} fullScreen>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose}>
           <Text style={styles.cancelText}>취소</Text>
