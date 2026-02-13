@@ -13,7 +13,6 @@ const config: Config = {
   coverageDirectory: 'coverage',
   verbose: true,
   clearMocks: true,
-  resetMocks: true,
   restoreMocks: true,
 };
 
