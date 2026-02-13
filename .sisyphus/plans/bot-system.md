@@ -445,7 +445,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 4. Bot Service — OpenAI 서비스 + 프롬프트 템플릿
+- [x] 4. Bot Service — OpenAI 서비스 + 프롬프트 템플릿
 
   **What to do**:
   - `bot/src/services/openaiService.ts`:
@@ -514,7 +514,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 5. Bot Service — Naver News API 클라이언트
+- [x] 5. Bot Service — Naver News API 클라이언트
 
   **What to do**:
   - `bot/src/services/naverNewsService.ts`:
@@ -571,7 +571,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 6. Bot Service — KIS 주식 API 클라이언트
+- [x] 6. Bot Service — KIS 주식 API 클라이언트
 
   **What to do**:
   - `bot/src/services/kisStockService.ts`:
@@ -628,7 +628,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 7. Backend — 웹훅 발송 로직 (댓글 생성 시 봇 서비스에 알림)
+- [x] 7. Backend — 웹훅 발송 로직 (댓글 생성 시 봇 서비스에 알림)
 
   **What to do**:
   - `backend/src/services/webhookService.ts` 생성:
