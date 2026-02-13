@@ -56,6 +56,19 @@ export interface Comment {
   _count?: { likes: number };
 }
 
+export interface Schedule {
+  id: number;
+  userId: number;
+  title: string;
+  memo: string | null;
+  startDate: string;
+  endDate: string;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl'>;
+}
+
 export interface Notification {
   id: number;
   postId: number | null;

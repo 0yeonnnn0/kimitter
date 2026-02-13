@@ -53,11 +53,17 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="search"
+          name="schedule"
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} iconName="search-outline" iconNameFocused="search" />
+              <TabIcon focused={focused} iconName="calendar-outline" iconNameFocused="calendar" />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="search"
+          options={{
+            href: null,
           }}
         />
         <Tabs.Screen
