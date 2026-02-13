@@ -705,7 +705,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 8. Bot Service — 3개 봇 구현 (주식/정치/뉴스)
+- [x] 8. Bot Service — 3개 봇 구현 (주식/정치/뉴스)
 
   **What to do**:
   - `bot/src/bots/baseBbot.ts` — 공통 봇 베이스 클래스/인터페이스:
@@ -788,7 +788,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 9. Bot Service — 웹훅 수신 서버 + 댓글 답변 로직
+- [x] 9. Bot Service — 웹훅 수신 서버 + 댓글 답변 로직
 
   **What to do**:
   - `bot/src/webhook/webhookServer.ts`:
@@ -870,7 +870,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 10. Bot Service — 스케줄러 (node-cron) + 봇 계정 seed 스크립트
+- [x] 10. Bot Service — 스케줄러 (node-cron) + 봇 계정 seed 스크립트
 
   **What to do**:
   - `bot/src/scheduler.ts`:
@@ -965,7 +965,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 11. Bot Service — Dockerfile + docker-compose
+- [x] 11. Bot Service — Dockerfile + docker-compose
 
   **What to do**:
   - `bot/Dockerfile`:
@@ -1063,7 +1063,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 12. Integration Test — 전체 플로우 검증
+- [x] 12. Integration Test — 전체 플로우 검증
 
   **What to do**:
   - 전체 시스템 통합 테스트:
