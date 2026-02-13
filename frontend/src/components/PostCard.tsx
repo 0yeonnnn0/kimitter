@@ -12,6 +12,7 @@ import { getFileUrl } from '../config/constants';
 import { useAuthStore } from '../stores/authStore';
 import { usePostActionStore } from '../stores/postActionStore';
 import MediaGallery from './MediaGallery';
+import BotBadge from './BotBadge';
 
 interface PostCardProps {
   post: Post;
@@ -84,6 +85,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
             <TouchableOpacity activeOpacity={0.7} onPress={navigateToProfile}>
               <Text style={styles.nickname}>{post.user.nickname}</Text>
             </TouchableOpacity>
+            {post.user.role === 'BOT' ? <BotBadge /> : null}
             <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
             <View style={styles.headerSpacer} />
             <TouchableOpacity

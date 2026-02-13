@@ -4,7 +4,7 @@ export interface User {
   nickname: string;
   bio: string | null;
   profileImageUrl: string | null;
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'BOT';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -33,7 +33,7 @@ export interface Post {
   content: string;
   createdAt: string;
   updatedAt: string;
-  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl'>;
+  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl' | 'role'>;
   media: PostMedia[];
   tags: Array<{ tag: Tag }>;
   isLiked: boolean;
@@ -51,7 +51,7 @@ export interface Comment {
   content: string;
   createdAt: string;
   updatedAt: string;
-  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl'>;
+  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl' | 'role'>;
   replies?: Comment[];
   _count?: { likes: number };
 }
@@ -66,7 +66,7 @@ export interface Schedule {
   color: string;
   createdAt: string;
   updatedAt: string;
-  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl'>;
+  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl' | 'role'>;
 }
 
 export interface Notification {

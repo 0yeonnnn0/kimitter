@@ -15,6 +15,7 @@ import EditProfileModal from '../../src/components/EditProfileModal';
 import InviteModal from '../../src/components/InviteModal';
 import ImageViewerModal from '../../src/components/ImageViewerModal';
 import SidebarMenu from '../../src/components/SidebarMenu';
+import BotBadge from '../../src/components/BotBadge';
 
 export default function ProfileScreen() {
   const { user } = useAuthStore();
@@ -53,13 +54,14 @@ export default function ProfileScreen() {
           )}
         </TouchableOpacity>
       </View>
-      {user.role === 'ADMIN' ? (
-        <View style={styles.badgeRow}>
+      <View style={styles.badgeRow}>
+        {user.role === 'ADMIN' ? (
           <View style={styles.adminBadge}>
             <Text style={styles.adminBadgeText}>관리자</Text>
           </View>
-        </View>
-      ) : null}
+        ) : null}
+        {user.role === 'BOT' ? <BotBadge size="normal" /> : null}
+      </View>
       {user.role === 'ADMIN' ? (
         <View style={styles.buttonRow}>
           <TouchableOpacity

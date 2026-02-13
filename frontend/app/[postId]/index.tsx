@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Post, Comment } from '../../src/types/models';
 import { getFileUrl } from '../../src/config/constants';
 import MediaGallery from '../../src/components/MediaGallery';
+import BotBadge from '../../src/components/BotBadge';
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -174,7 +175,10 @@ export default function PostDetailScreen() {
                 </View>
               )}
               <View>
-                <Text style={styles.nickname}>{post.user.nickname}</Text>
+                <View style={styles.nicknameRow}>
+                  <Text style={styles.nickname}>{post.user.nickname}</Text>
+                  {post.user.role === 'BOT' ? <BotBadge /> : null}
+                </View>
                 <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
               </View>
             </View>
@@ -213,7 +217,10 @@ export default function PostDetailScreen() {
                 </View>
               )}
               <View style={styles.commentBody}>
-                <Text style={styles.commentNickname}>{item.user.nickname}</Text>
+                <View style={styles.nicknameRow}>
+                  <Text style={styles.commentNickname}>{item.user.nickname}</Text>
+                  {item.user.role === 'BOT' ? <BotBadge /> : null}
+                </View>
                 <Text style={styles.commentContent}>{item.content}</Text>
                 <View style={styles.commentActions}>
                   <Text style={styles.commentDate}>{formatDate(item.createdAt)}</Text>
@@ -235,7 +242,10 @@ export default function PostDetailScreen() {
                   </View>
                 )}
                 <View style={styles.commentBody}>
-                  <Text style={styles.commentNickname}>{reply.user.nickname}</Text>
+                  <View style={styles.nicknameRow}>
+                    <Text style={styles.commentNickname}>{reply.user.nickname}</Text>
+                    {reply.user.role === 'BOT' ? <BotBadge /> : null}
+                  </View>
                   <Text style={styles.commentContent}>{reply.content}</Text>
                   <Text style={styles.commentDate}>{formatDate(reply.createdAt)}</Text>
                 </View>
@@ -328,6 +338,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#e8e8e8',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  nicknameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   nickname: {
     fontSize: 15,

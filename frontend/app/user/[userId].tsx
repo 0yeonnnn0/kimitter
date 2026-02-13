@@ -14,6 +14,7 @@ import { getFileUrl } from '../../src/config/constants';
 import type { User } from '../../src/types/models';
 import ProfileTabs from '../../src/components/ProfileTabs';
 import ImageViewerModal from '../../src/components/ImageViewerModal';
+import BotBadge from '../../src/components/BotBadge';
 
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -75,13 +76,14 @@ export default function UserProfileScreen() {
           )}
         </TouchableOpacity>
       </View>
-      {user.role === 'ADMIN' ? (
-        <View style={styles.badgeRow}>
+      <View style={styles.badgeRow}>
+        {user.role === 'ADMIN' ? (
           <View style={styles.adminBadge}>
             <Text style={styles.adminBadgeText}>관리자</Text>
           </View>
-        </View>
-      ) : null}
+        ) : null}
+        {user.role === 'BOT' ? <BotBadge size="normal" /> : null}
+      </View>
     </View>
   );
 
