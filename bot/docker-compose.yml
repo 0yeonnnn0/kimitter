@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: kimitter-bot
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - KIMITTER_API_URL=http://kimitter-backend:3000/api
+    networks:
+      - kimitter-net
+
+networks:
+  kimitter-net:
+    external: true

@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+*.test.ts
+__tests__
+__mocks__
+coverage
+jest.config.ts
+.env.example
