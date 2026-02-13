@@ -196,7 +196,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 1. Backend — BOT role 추가 + validation 수정 + 봇 로그인 차단
+- [x] 1. Backend — BOT role 추가 + validation 수정 + 봇 로그인 차단
 
   **What to do**:
   - Prisma schema `enum Role`에 `BOT` 추가 (`prisma/schema.prisma`)
@@ -275,7 +275,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 2. Bot Service — 프로젝트 스캐폴드 + Kimitter API 클라이언트
+- [x] 2. Bot Service — 프로젝트 스캐폴드 + Kimitter API 클라이언트
 
   **What to do**:
   - `bot/` 디렉토리에 Node.js/TypeScript 프로젝트 생성
@@ -379,7 +379,7 @@ Wave 4 (After Wave 3):
 
 ---
 
-- [ ] 3. Frontend — BOT role 타입 업데이트 + 봇 뱃지 컴포넌트
+- [x] 3. Frontend — BOT role 타입 업데이트 + 봇 뱃지 컴포넌트
 
   **What to do**:
   - `frontend/src/types/models.ts`에서 User.role 타입에 `'BOT'` 추가
