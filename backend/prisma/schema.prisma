@@ -55,6 +55,7 @@ model User {
   createdInvitations InvitationCode[] @relation("CreatedInvitations")
   usedInvitation     InvitationCode?  @relation("UsedInvitation")
   refreshTokens     RefreshToken[]
+  schedules         Schedule[]
 
   @@map("users")
 }
@@ -217,6 +218,26 @@ model Notification {
   @@index([recipientId])
   @@index([senderId])
   @@map("notifications")
+}
+
+// ─── Schedules ───────────────────────────────────────────
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String   @db.VarChar(100)
+  memo      String?  @db.VarChar(500)
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  color     String   @default("#4A90D9") @db.VarChar(7)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startDate, endDate])
+  @@map("schedules")
 }
 
 // ─── Push Tokens ─────────────────────────────────────────

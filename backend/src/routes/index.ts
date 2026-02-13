@@ -8,6 +8,7 @@ import tagRouter from './tags';
 import notificationRouter from './notifications';
 import activityRouter from './activity';
 import adminRouter from './admin';
+import scheduleRouter from './schedules';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/tags', tagRouter);
 router.use('/notifications', notificationRouter);
 router.use('/activity', activityRouter);
 router.use('/admin', adminRouter);
+router.use('/schedules', scheduleRouter);
 
 export default router;
