@@ -3,6 +3,7 @@ import * as commentService from './commentService';
 
 jest.mock('../config/database', () => ({ prisma: require('../test/helpers').makePrismaMock() }));
 jest.mock('../config/environment', () => ({ config: { nodeEnv: 'test' } }));
+jest.mock('./webhookService', () => ({ sendBotWebhook: jest.fn().mockResolvedValue(undefined) }));
 
 const db = prisma as unknown as ReturnType<typeof import('../test/helpers').makePrismaMock>;
 
@@ -28,6 +29,7 @@ describe('createComment', () => {
   it('creates comment when post exists', async () => {
     db.post.findFirst.mockResolvedValue(basePost);
     db.comment.create.mockResolvedValue(baseComment);
+    db.user.findUnique.mockResolvedValue({ id: 10, role: 'USER', username: 'testuser' });
     const result = await commentService.createComment(1, 10, 'nice post');
     expect(result).toEqual(baseComment);
     expect(db.comment.create).toHaveBeenCalledWith(
@@ -85,6 +87,8 @@ describe('createReply', () => {
   it('creates reply with correct parentCommentId', async () => {
     db.comment.findFirst.mockResolvedValue(baseComment);
     db.comment.create.mockResolvedValue({ ...baseComment, parentCommentId: 5, content: 'reply' });
+    db.post.findUnique.mockResolvedValue({ id: 1, userId: 10 });
+    db.user.findUnique.mockResolvedValue({ id: 10, role: 'USER', username: 'testuser' });
     const result = await commentService.createReply(5, 10, 'reply');
     expect(result.parentCommentId).toBe(5);
   });

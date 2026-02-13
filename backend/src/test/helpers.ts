@@ -9,6 +9,7 @@ export const makePrismaMock = () => ({
     count: jest.fn(),
   },
   post: {
+    findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),
     create: jest.fn(),

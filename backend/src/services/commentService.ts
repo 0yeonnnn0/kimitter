@@ -3,6 +3,7 @@ import { prisma } from '../config/database';
 import { ForbiddenError, NotFoundError } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { sendPushNotification } from './notificationService';
+import { sendBotWebhook } from './webhookService';
 
 const userSelect = { id: true, username: true, nickname: true, profileImageUrl: true };
 
@@ -75,6 +76,29 @@ export const createComment = async (
     }
   } catch (err) {
     logger.error('Failed to create comment notification', { error: err });
+  }
+
+  const postAuthor = await prisma.user.findUnique({
+    where: { id: post.userId },
+    select: { id: true, role: true },
+  });
+  const commentAuthor = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, username: true, role: true },
+  });
+
+  if (postAuthor?.role === 'BOT' && commentAuthor?.role !== 'BOT') {
+    sendBotWebhook({
+      postId,
+      commentId: comment.id,
+      commentContent: content,
+      commentAuthor: {
+        id: commentAuthor!.id,
+        username: commentAuthor!.username,
+        role: commentAuthor!.role,
+      },
+      parentCommentId: parentCommentId ?? null,
+    }).catch((err) => logger.error('Webhook dispatch failed', { error: err }));
   }
 
   return comment;
@@ -166,6 +190,35 @@ export const createReply = async (commentId: number, userId: number, content: st
     }
   } catch (err) {
     logger.error('Failed to create reply notification', { error: err });
+  }
+
+  const post = await prisma.post.findUnique({
+    where: { id: parent.postId },
+    select: { userId: true },
+  });
+  if (post) {
+    const postAuthor = await prisma.user.findUnique({
+      where: { id: post.userId },
+      select: { id: true, role: true },
+    });
+    const replyAuthor = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, username: true, role: true },
+    });
+
+    if (postAuthor?.role === 'BOT' && replyAuthor?.role !== 'BOT') {
+      sendBotWebhook({
+        postId: parent.postId,
+        commentId: reply.id,
+        commentContent: content,
+        commentAuthor: {
+          id: replyAuthor!.id,
+          username: replyAuthor!.username,
+          role: replyAuthor!.role,
+        },
+        parentCommentId: commentId,
+      }).catch((err) => logger.error('Webhook dispatch failed', { error: err }));
+    }
   }
 
   return reply;

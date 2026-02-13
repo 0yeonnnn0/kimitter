@@ -13,6 +13,7 @@ export const config = {
   uploadDir: process.env.UPLOAD_DIR || './uploads',
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600', 10),
   expoAccessToken: process.env.EXPO_ACCESS_TOKEN || '',
+  botWebhookUrl: process.env.BOT_WEBHOOK_URL || '',
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
