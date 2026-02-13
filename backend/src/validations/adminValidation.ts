@@ -9,5 +9,5 @@ export const inviteByEmailSchema = Joi.object({
 });
 
 export const updateRoleSchema = Joi.object({
-  role: Joi.string().valid('USER', 'ADMIN').required(),
+  role: Joi.string().valid('USER', 'ADMIN', 'BOT').required(),
 });

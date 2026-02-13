@@ -61,3 +61,32 @@ describe('markAllAsRead', () => {
     );
   });
 });
+
+describe('notifyPostMention', () => {
+  it('skips notification for BOT recipients', async () => {
+    db.user.findUnique
+      .mockResolvedValueOnce({ nickname: 'Sender' })
+      .mockResolvedValueOnce({ role: 'BOT' });
+
+    await notificationService.notifyPostMention(1, [2], 10, 'Test message');
+
+    expect(db.notification.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('broadcastNotification', () => {
+  it('excludes BOT users from broadcast', async () => {
+    db.user.findMany.mockResolvedValue([{ id: 2 }, { id: 3 }]);
+    db.user.findUnique.mockResolvedValue({ nickname: 'Sender' });
+    db.notification.create.mockResolvedValue({ id: 1 });
+    db.pushToken.findMany.mockResolvedValue([]);
+
+    await notificationService.broadcastNotification(1, 'Broadcast message');
+
+    expect(db.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ role: { not: 'BOT' } }),
+      }),
+    );
+  });
+});

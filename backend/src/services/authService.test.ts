@@ -130,6 +130,14 @@ describe('login', () => {
     });
   });
 
+  it('throws ForbiddenError when user is BOT', async () => {
+    db.user.findUnique.mockResolvedValue({ ...baseUser, role: 'BOT', passwordHash: 'hash' });
+    await expect(authService.login('botuser', 'pass')).rejects.toMatchObject({
+      message: 'Bot accounts cannot login',
+      statusCode: 403,
+    });
+  });
+
   it('returns user, accessToken, refreshToken on success', async () => {
     db.user.findUnique.mockResolvedValue({ ...baseUser, passwordHash: 'hash' });
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);

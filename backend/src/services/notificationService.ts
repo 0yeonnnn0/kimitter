@@ -47,6 +47,15 @@ export const notifyPostMention = async (
 
   await Promise.all(
     recipientIds.map(async (recipientId) => {
+      const recipient = await prisma.user.findUnique({
+        where: { id: recipientId },
+        select: { role: true },
+      });
+
+      if (recipient?.role === 'BOT') {
+        return;
+      }
+
       await prisma.notification.create({
         data: {
           postId,
@@ -68,7 +77,7 @@ export const notifyPostMention = async (
 
 export const broadcastNotification = async (senderId: number, message: string) => {
   const allUsers = await prisma.user.findMany({
-    where: { isActive: true, id: { not: senderId } },
+    where: { isActive: true, id: { not: senderId }, role: { not: 'BOT' } },
     select: { id: true },
   });
 

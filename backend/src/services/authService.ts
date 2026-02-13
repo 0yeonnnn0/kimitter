@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../config/database';
 import {
   ConflictError,
+  ForbiddenError,
   NotFoundError,
   UnauthorizedError,
   ValidationError,
@@ -87,6 +88,10 @@ export const login = async (username: string, password: string) => {
   const user = await prisma.user.findUnique({ where: { username } });
   if (!user || !user.isActive) {
     throw new UnauthorizedError('Invalid credentials');
+  }
+
+  if (user.role === 'BOT') {
+    throw new ForbiddenError('Bot accounts cannot login');
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
