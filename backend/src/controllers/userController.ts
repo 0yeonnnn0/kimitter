@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as userService from '../services/userService';
+import { NotFoundError } from '../utils/errors';
 
 export const searchUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -31,7 +32,9 @@ export const getCalendarColors = async (req: Request, res: Response, next: NextF
 
 export const getUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = await userService.getUserById(Number(req.params.userId));
+    const userId = Number(req.params.userId);
+    if (isNaN(userId)) throw new NotFoundError('유저를 찾을 수 없습니다.');
+    const user = await userService.getUserById(userId);
     res.json({ success: true, data: user });
   } catch (err) {
     next(err);
