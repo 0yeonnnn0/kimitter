@@ -20,6 +20,12 @@ export const getUserMediaPosts = (userId: number, page = 1, limit = 20) => {
   return api.get(`/users/${userId}/media-posts`, { params: { page, limit } });
 };
 
+export const getCalendarColors = () => {
+  return api.get<{ success: boolean; data: Array<{ id: number; calendarColor: string }> }>(
+    '/users/calendar-colors',
+  );
+};
+
 export const updateMe = (formData: FormData) => {
   return api.put('/users/me', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },

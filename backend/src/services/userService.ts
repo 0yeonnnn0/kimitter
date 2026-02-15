@@ -39,6 +39,14 @@ export const getCurrentUser = async (userId: number) => {
   return getUserById(userId);
 };
 
+export const getCalendarColors = async () => {
+  const users = await prisma.user.findMany({
+    where: { isActive: true, calendarColor: { not: null } },
+    select: { id: true, calendarColor: true },
+  });
+  return users as Array<{ id: number; calendarColor: string }>;
+};
+
 export const updateUser = async (
   userId: number,
   data: { username?: string; nickname?: string; bio?: string; profileImageUrl?: string; calendarColor?: string },
@@ -49,6 +57,14 @@ export const updateUser = async (
     });
     if (existing) {
       throw new AppError('이미 사용 중인 아이디입니다.', 409);
+    }
+  }
+  if (data.calendarColor) {
+    const existing = await prisma.user.findFirst({
+      where: { calendarColor: data.calendarColor, id: { not: userId } },
+    });
+    if (existing) {
+      throw new AppError('이미 다른 가족이 사용 중인 색상입니다.', 409);
     }
   }
   return prisma.user.update({

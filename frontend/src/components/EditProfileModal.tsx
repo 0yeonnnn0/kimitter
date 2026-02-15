@@ -37,6 +37,7 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
   const [calendarColor, setCalendarColor] = useState(user.calendarColor ?? CALENDAR_COLORS[0]);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [takenColors, setTakenColors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (visible) {
@@ -45,6 +46,18 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
       setBio(user.bio ?? '');
       setCalendarColor(user.calendarColor ?? CALENDAR_COLORS[0]);
       setImageUri(null);
+
+      userService.getCalendarColors().then(({ data }) => {
+        const taken = new Set<string>();
+        for (const entry of data.data) {
+          if (entry.id !== user.id) {
+            taken.add(entry.calendarColor);
+          }
+        }
+        setTakenColors(taken);
+      }).catch(() => {
+        setTakenColors(new Set());
+      });
     }
   }, [visible, user]);
 
@@ -171,19 +184,29 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
         <View style={styles.field}>
           <Text style={styles.label}>캘린더 색상</Text>
           <View style={styles.colorRow}>
-            {CALENDAR_COLORS.map((c) => (
-              <TouchableOpacity
-                key={c}
-                style={[
-                  styles.colorCircle,
-                  { backgroundColor: c },
-                  calendarColor === c && styles.colorCircleSelected,
-                ]}
-                onPress={() => setCalendarColor(c)}
-              >
-                {calendarColor === c ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-              </TouchableOpacity>
-            ))}
+            {CALENDAR_COLORS.map((c) => {
+              const isTaken = takenColors.has(c);
+              return (
+                <TouchableOpacity
+                  key={c}
+                  style={[
+                    styles.colorCircle,
+                    { backgroundColor: c },
+                    calendarColor === c && styles.colorCircleSelected,
+                    isTaken && styles.colorCircleDisabled,
+                  ]}
+                  onPress={() => { if (!isTaken) setCalendarColor(c); }}
+                  disabled={isTaken}
+                  activeOpacity={isTaken ? 1 : 0.7}
+                >
+                  {calendarColor === c ? (
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                  ) : isTaken ? (
+                    <Ionicons name="close" size={14} color="#fff" />
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -302,6 +325,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 3,
+  },
+  colorCircleDisabled: {
+    opacity: 0.3,
   },
   changePasswordButton: {
     flexDirection: 'row',

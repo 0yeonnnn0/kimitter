@@ -20,6 +20,15 @@ export const getMe = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
+export const getCalendarColors = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const colors = await userService.getCalendarColors();
+    res.json({ success: true, data: colors });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await userService.getUserById(Number(req.params.userId));

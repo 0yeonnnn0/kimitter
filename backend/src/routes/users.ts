@@ -10,6 +10,7 @@ router.use(verifyToken);
 router.get('/me', userController.getMe);
 router.put('/me', upload.single('profileImage'), userController.updateMe);
 router.get('/search', userController.searchUsers);
+router.get('/calendar-colors', userController.getCalendarColors);
 router.get('/:userId', userController.getUser);
 router.get('/:userId/posts', userController.getUserPosts);
 router.get('/:userId/replies', userController.getUserRepliedPosts);
