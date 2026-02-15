@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as postService from '../services/postService';
+import * as notificationService from '../services/notificationService';
 
 export const createPost = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -11,6 +12,10 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
       files,
     );
     res.status(201).json({ success: true, data: post });
+
+    if (req.userRole !== 'ADMIN' && req.userRole !== 'BOT') {
+      notificationService.notifyNewPost(req.userId!, post.id).catch(() => {});
+    }
   } catch (err) {
     next(err);
   }

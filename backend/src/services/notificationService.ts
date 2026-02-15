@@ -75,6 +75,34 @@ export const notifyPostMention = async (
   );
 };
 
+export const notifyNewPost = async (senderId: number, postId: number) => {
+  const [sender, recipients] = await Promise.all([
+    prisma.user.findUnique({ where: { id: senderId }, select: { nickname: true } }),
+    prisma.user.findMany({
+      where: { isActive: true, id: { not: senderId }, role: { not: 'BOT' } },
+      select: { id: true },
+    }),
+  ]);
+
+  const nickname = sender?.nickname ?? '누군가';
+  const message = `${nickname}님이 글을 작성했습니다. 확인해보세요!`;
+
+  await Promise.all(
+    recipients.map(async (user) => {
+      await prisma.notification.create({
+        data: {
+          postId,
+          senderId,
+          recipientId: user.id,
+          notificationType: NotificationType.POST_MENTION,
+          message,
+        },
+      });
+      await sendPushNotification(user.id, nickname, message, { postId });
+    }),
+  );
+};
+
 export const broadcastNotification = async (senderId: number, message: string) => {
   const allUsers = await prisma.user.findMany({
     where: { isActive: true, id: { not: senderId }, role: { not: 'BOT' } },
