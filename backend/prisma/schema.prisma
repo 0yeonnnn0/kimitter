@@ -42,6 +42,7 @@ model User {
   nickname        String    @db.VarChar(100)
   bio             String?   @db.VarChar(200)
   profileImageUrl String?   @map("profile_image_url") @db.VarChar(255)
+  calendarColor   String?   @map("calendar_color") @db.VarChar(7)
   role            Role      @default(USER)
   isActive        Boolean   @default(true) @map("is_active")
   createdAt       DateTime  @default(now()) @map("created_at")

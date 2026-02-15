@@ -7,6 +7,7 @@ const userSelect = {
   nickname: true,
   bio: true,
   profileImageUrl: true,
+  calendarColor: true,
   role: true,
   isActive: true,
   createdAt: true,
@@ -40,7 +41,7 @@ export const getCurrentUser = async (userId: number) => {
 
 export const updateUser = async (
   userId: number,
-  data: { username?: string; nickname?: string; bio?: string; profileImageUrl?: string },
+  data: { username?: string; nickname?: string; bio?: string; profileImageUrl?: string; calendarColor?: string },
 ) => {
   if (data.username) {
     const existing = await prisma.user.findFirst({

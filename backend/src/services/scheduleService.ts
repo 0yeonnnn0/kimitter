@@ -2,7 +2,7 @@ import { prisma } from '../config/database';
 import { ForbiddenError, NotFoundError } from '../utils/errors';
 
 const scheduleInclude = {
-  user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+  user: { select: { id: true, username: true, nickname: true, profileImageUrl: true, calendarColor: true } },
 };
 
 export const getByMonth = async (year: number, month: number) => {

@@ -23,8 +23,8 @@ import type { Schedule } from '../../src/types/models';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
-const PRESET_COLORS = ['#4A90D9', '#E74C3C', '#2ECC71', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E'];
 const CALENDAR_ROWS = 6;
+const DEFAULT_COLOR = '#4A90D9';
 
 interface CalendarDay {
   date: Date;
@@ -80,8 +80,13 @@ function schedulesForDate(schedules: Schedule[], dateStr: string): Schedule[] {
 
 function dotColorsForDate(schedules: Schedule[], dateStr: string): string[] {
   const matched = schedulesForDate(schedules, dateStr);
-  const colors = [...new Set(matched.map((s) => s.color))];
-  return colors.slice(0, 3);
+  const userColors = new Map<number, string>();
+  matched.forEach((s) => {
+    if (!userColors.has(s.userId)) {
+      userColors.set(s.userId, s.user.calendarColor ?? DEFAULT_COLOR);
+    }
+  });
+  return [...userColors.values()].slice(0, 4);
 }
 
 export default function ScheduleScreen() {
@@ -99,7 +104,6 @@ export default function ScheduleScreen() {
   const [memo, setMemo] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [color, setColor] = useState(PRESET_COLORS[0]);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
   const calendarDays = buildCalendarDays(year, month);
@@ -151,7 +155,6 @@ export default function ScheduleScreen() {
     setMemo('');
     setStartDate(selectedDate);
     setEndDate(selectedDate);
-    setColor(PRESET_COLORS[0]);
     setModalVisible(true);
     Animated.spring(slideAnim, {
       toValue: 0,
@@ -166,7 +169,6 @@ export default function ScheduleScreen() {
     setMemo(schedule.memo ?? '');
     setStartDate(schedule.startDate.slice(0, 10));
     setEndDate(schedule.endDate.slice(0, 10));
-    setColor(schedule.color);
     setModalVisible(true);
     Animated.spring(slideAnim, {
       toValue: 0,
@@ -209,7 +211,6 @@ export default function ScheduleScreen() {
           startDate,
           endDate,
           memo: memo.trim() || undefined,
-          color,
         });
       } else {
         await scheduleService.createSchedule({
@@ -217,7 +218,6 @@ export default function ScheduleScreen() {
           startDate,
           endDate,
           memo: memo.trim() || undefined,
-          color,
         });
       }
       closeModal();
@@ -324,7 +324,7 @@ export default function ScheduleScreen() {
         onPress={() => isOwner ? openEditModal(item) : undefined}
         onLongPress={() => (isOwner || isAdmin) ? handleDelete(item) : undefined}
       >
-        <View style={[styles.colorBar, { backgroundColor: item.color }]} />
+        <View style={[styles.colorBar, { backgroundColor: item.user.calendarColor ?? DEFAULT_COLOR }]} />
         <View style={styles.scheduleContent}>
           <Text style={styles.scheduleTitle}>{item.title}</Text>
           <Text style={styles.scheduleDate}>{formatRange(item.startDate, item.endDate)}</Text>
@@ -457,24 +457,6 @@ export default function ScheduleScreen() {
                 />
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>색상</Text>
-                <View style={styles.colorPicker}>
-                  {PRESET_COLORS.map((c) => (
-                    <TouchableOpacity
-                      key={c}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: c },
-                        color === c && styles.colorOptionSelected,
-                      ]}
-                      onPress={() => setColor(c)}
-                    >
-                      {color === c ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
             </Animated.View>
           </KeyboardAvoidingView>
         </View>
@@ -734,26 +716,5 @@ const styles = StyleSheet.create({
   formTextarea: {
     height: 72,
     textAlignVertical: 'top',
-  },
-  colorPicker: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  colorOption: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  colorOptionSelected: {
-    borderWidth: 2,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 3,
   },
 });

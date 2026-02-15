@@ -29,9 +29,12 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
   const router = useRouter();
   const { setUser } = useAuthStore();
 
+  const CALENDAR_COLORS = ['#4A90D9', '#E74C3C', '#2ECC71', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E'];
+
   const [nickname, setNickname] = useState(user.nickname);
   const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState(user.bio ?? '');
+  const [calendarColor, setCalendarColor] = useState(user.calendarColor ?? CALENDAR_COLORS[0]);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -40,6 +43,7 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
       setNickname(user.nickname);
       setUsername(user.username);
       setBio(user.bio ?? '');
+      setCalendarColor(user.calendarColor ?? CALENDAR_COLORS[0]);
       setImageUri(null);
     }
   }, [visible, user]);
@@ -72,6 +76,7 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
       formData.append('nickname', nickname.trim());
       formData.append('username', username.trim());
       formData.append('bio', bio.trim());
+      formData.append('calendarColor', calendarColor);
 
       if (imageUri) {
         const filename = imageUri.split('/').pop() ?? 'profile.jpg';
@@ -161,6 +166,25 @@ export default function EditProfileModal({ visible, user, onClose, onSaved }: Ed
             multiline
             maxLength={200}
           />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>캘린더 색상</Text>
+          <View style={styles.colorRow}>
+            {CALENDAR_COLORS.map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.colorCircle,
+                  { backgroundColor: c },
+                  calendarColor === c && styles.colorCircleSelected,
+                ]}
+                onPress={() => setCalendarColor(c)}
+              >
+                {calendarColor === c ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <TouchableOpacity
@@ -257,6 +281,27 @@ const styles = StyleSheet.create({
   bioInput: {
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  colorRow: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  colorCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorCircleSelected: {
+    borderWidth: 2.5,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
   },
   changePasswordButton: {
     flexDirection: 'row',

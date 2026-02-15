@@ -4,6 +4,7 @@ export interface User {
   nickname: string;
   bio: string | null;
   profileImageUrl: string | null;
+  calendarColor: string | null;
   role: 'USER' | 'ADMIN' | 'BOT';
   isActive: boolean;
   createdAt: string;
@@ -66,7 +67,7 @@ export interface Schedule {
   color: string;
   createdAt: string;
   updatedAt: string;
-  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl' | 'role'>;
+  user: Pick<User, 'id' | 'username' | 'nickname' | 'profileImageUrl' | 'calendarColor'>;
 }
 
 export interface Notification {
