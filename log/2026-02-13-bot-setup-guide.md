@@ -173,13 +173,16 @@ BOT_WEBHOOK_URL=http://kimitter-bot:4000/webhook
 
 ## Step 4. 실행
 
-### 방법 A: 로컬 개발 (추천 — 처음 테스트할 때)
+### 로컬 테스트 (MacBook, Docker 없이)
+
+NAS에서 이미 백엔드가 돌고 있으므로, 봇 서비스만 로컬에서 실행하면 된다.
+`.env`의 `KIMITTER_API_URL`을 NAS 주소로 설정:
+
+```env
+KIMITTER_API_URL=https://kimitter.yeonnnn.xyz/api
+```
 
 ```bash
-# 터미널 1: 백엔드 (이미 돌고 있으면 스킵)
-cd backend && npm run dev
-
-# 터미널 2: 봇 서비스
 cd bot && npm run dev
 ```
 
@@ -192,25 +195,28 @@ info: Bot service started on port 4000
 info: Scheduler started with 3 jobs
 ```
 
-### 방법 B: Docker (프로덕션/NAS 배포)
+> 로컬에서는 게시글 생성만 테스트 가능. 댓글 Q&A(웹훅)는 NAS 배포 후 테스트.
+
+### NAS 배포 (Synology)
+
+NAS에서 직접 빌드한다 (Docker Hub 불필요):
 
 ```bash
-# 1. 백엔드가 이미 Docker로 돌고 있다면, kimitter-net 네트워크 확인
-docker network ls | grep kimitter-net
+# 1. Mac에서 소스를 NAS로 복사
+rsync -avz \
+  --exclude='node_modules' --exclude='dist' --exclude='.env' --exclude='coverage' \
+  bot/ admin@NAS_IP:/volume1/docker/kimitter-bot/source/
 
-# 없으면 생성
-docker network create kimitter-net
-
-# 기존 backend를 kimitter-net에 연결 (아직 안 되어 있다면)
-docker network connect kimitter-net kimitter-backend
-
-# 2. 봇 서비스 빌드 & 실행
-cd bot
-docker-compose up -d --build
+# 2. NAS에서 빌드 + 실행
+ssh admin@NAS_IP
+cd /volume1/docker/kimitter-bot
+docker compose -f docker-compose.prod.yml up -d --build
 
 # 3. 로그 확인
 docker logs -f kimitter-bot
 ```
+
+상세 절차는 `log/2026-02-14-bot-nas-deployment.md` 참조.
 
 ### 헬스체크
 
@@ -281,9 +287,15 @@ docker logs kimitter-bot -f    # 실시간
 ### 봇 서비스만 업데이트
 
 ```bash
-cd bot
-docker-compose down
-docker-compose up -d --build
+# Mac에서 소스 복사
+rsync -avz \
+  --exclude='node_modules' --exclude='dist' --exclude='.env' --exclude='coverage' \
+  bot/ admin@NAS_IP:/volume1/docker/kimitter-bot/source/
+
+# NAS에서 재빌드
+ssh admin@NAS_IP
+cd /volume1/docker/kimitter-bot
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### OpenAI 비용 모니터링
@@ -297,41 +309,12 @@ https://platform.openai.com/usage 에서 확인. GPT-4o-mini 기준:
 
 ## NAS (Synology) 배포
 
-기존 백엔드와 같은 방식으로 NAS에 올릴 수 있다:
+**상세 가이드**: `log/2026-02-14-bot-nas-deployment.md`
 
-```bash
-# 1. Mac에서 이미지 빌드 & Docker Hub Push
-cd bot
-docker buildx build --platform linux/amd64 --no-cache \
-  -t dusehd1/kimitter-bot:latest --push .
-
-# 2. NAS에서
-# docker-compose.yml의 build: . 를 image: dusehd1/kimitter-bot:latest 로 변경
-# Container Manager에서 프로젝트 빌드 클릭
-```
-
-NAS용 `docker-compose.yml` 수정본:
-```yaml
-version: '3.8'
-services:
-  bot:
-    image: dusehd1/kimitter-bot:latest   # build: . 대신 이미지 사용
-    container_name: kimitter-bot
-    restart: unless-stopped
-    ports:
-      - '4000:4000'
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-      - KIMITTER_API_URL=http://kimitter-backend:3000/api
-    networks:
-      - kimitter-net
-
-networks:
-  kimitter-net:
-    external: true
-```
+요약:
+1. `rsync`로 `bot/` 소스를 NAS에 복사
+2. NAS에서 `docker compose up -d --build`로 직접 빌드 + 실행
+3. Docker Hub 경유 불필요 (NAS가 이미 amd64)
 
 ---
 
