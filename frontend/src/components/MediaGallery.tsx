@@ -56,6 +56,7 @@ function VideoThumbnailItem({ uri, width, height }: { uri: string; width: number
         player={player}
         style={{ width, height }}
         nativeControls={false}
+        contentFit="cover"
       />
       <View style={styles.playOverlay}>
         <Ionicons name="play-circle" size={48} color="rgba(255,255,255,0.9)" />
@@ -340,7 +341,7 @@ export default function MediaGallery({ media, paddingLeft, onPressBackground }: 
       if (m.mediaType === 'VIDEO') {
         setSizes((prev) => {
           if (prev[m.id]) return prev;
-          return { ...prev, [m.id]: { width: 16, height: 9 } };
+          return { ...prev, [m.id]: { width: 1, height: 1 } };
         });
         return;
       }
