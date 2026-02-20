@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -22,12 +22,17 @@ import PostCard from '../../src/components/PostCard';
 import HomeSidebar from '../../src/components/HomeSidebar';
 
 export default function HomeScreen() {
-  const { posts, isLoading, isRefreshing, fetchPosts, loadMore, toggleLike } = useFeedStore();
+  const { posts, isLoading, isRefreshing, fetchPosts, loadMore, toggleLike, showBotPosts } = useFeedStore();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const openCreateModal = useCreateModalStore((s) => s.open);
   const router = useRouter();
   const [sidebarVisible, setSidebarVisible] = useState(false);
+
+  const filteredPosts = useMemo(
+    () => showBotPosts ? posts : posts.filter((p) => p.user.role !== 'BOT'),
+    [posts, showBotPosts],
+  );
 
   const lastBackPress = useRef(0);
 
@@ -80,7 +85,7 @@ export default function HomeScreen() {
         </View>
       </View>
       <FlatList
-        data={posts}
+        data={filteredPosts}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ flexGrow: 1 }}
         renderItem={({ item }) => (
@@ -130,7 +135,7 @@ export default function HomeScreen() {
           )
         }
         ListFooterComponent={
-          isLoading && posts.length > 0 ? (
+          isLoading && filteredPosts.length > 0 ? (
             <ActivityIndicator style={styles.loader} />
           ) : null
         }

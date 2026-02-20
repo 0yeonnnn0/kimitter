@@ -9,12 +9,14 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { searchUsers } from '../services/userService';
 import { getFileUrl } from '../config/constants';
+import { useFeedStore } from '../stores/feedStore';
 import type { User } from '../types/models';
 
 const SIDEBAR_WIDTH = 300;
@@ -27,6 +29,8 @@ interface HomeSidebarProps {
 export default function HomeSidebar({ visible, onClose }: HomeSidebarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const showBotPosts = useFeedStore((s) => s.showBotPosts);
+  const toggleShowBotPosts = useFeedStore((s) => s.toggleShowBotPosts);
   const translateX = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
@@ -137,6 +141,19 @@ export default function HomeSidebar({ visible, onClose }: HomeSidebarProps) {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleLabel}>
+            <Ionicons name="hardware-chip-outline" size={20} color="#1a1a1a" />
+            <Text style={styles.toggleText}>봇 글 보기</Text>
+          </View>
+          <Switch
+            value={showBotPosts}
+            onValueChange={toggleShowBotPosts}
+            trackColor={{ false: '#e0e0e0', true: '#1a1a1a' }}
+            thumbColor="#fff"
+          />
+        </View>
+
         <Text style={styles.sectionLabel}>유저별 게시글 보기</Text>
 
         {loading ? (
@@ -186,6 +203,25 @@ const styles = StyleSheet.create({
   sidebarTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginBottom: 20,
+  },
+  toggleLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  toggleText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1a1a1a',
   },
   sectionLabel: {

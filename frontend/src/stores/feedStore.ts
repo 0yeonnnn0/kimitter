@@ -10,12 +10,14 @@ interface FeedState {
   isLoading: boolean;
   isRefreshing: boolean;
   lastDeletedPostId: number | null;
+  showBotPosts: boolean;
   fetchPosts: (refresh?: boolean) => Promise<void>;
   loadMore: () => Promise<void>;
   addPost: (post: Post) => void;
   updatePost: (post: Post) => void;
   removePost: (postId: number) => void;
   toggleLike: (postId: number, liked: boolean) => Promise<void>;
+  toggleShowBotPosts: () => void;
 }
 
 export const useFeedStore = create<FeedState>((set, get) => ({
@@ -24,6 +26,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   isLoading: false,
   isRefreshing: false,
   lastDeletedPostId: null,
+  showBotPosts: true,
 
   fetchPosts: async (refresh = false) => {
     if (refresh) {
@@ -92,4 +95,6 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       }));
     }
   },
+
+  toggleShowBotPosts: () => set((state) => ({ showBotPosts: !state.showBotPosts })),
 }));
