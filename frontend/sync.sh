@@ -14,13 +14,13 @@ while true; do
     echo "[sync] Changes detected ($BEFORE -> $AFTER)"
 
     if git diff --name-only "$BEFORE" "$AFTER" | grep -q "^frontend/"; then
-      echo "[sync] Frontend changed, reinstalling dependencies..."
+      echo "[sync] Frontend changed, installing dependencies..."
       cd /repo/frontend
-      npm ci
+      npm install
       echo "[sync] Restarting Expo server..."
       pkill -f "expo start" || true
       sleep 2
-      npx expo start --tunnel --non-interactive &
+      REACT_NATIVE_PACKAGER_HOSTNAME=${EXPO_HOSTNAME:-localhost} npx expo start --port 80 &
     fi
   fi
 done

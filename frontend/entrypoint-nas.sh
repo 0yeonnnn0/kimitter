@@ -1,15 +1,20 @@
 #!/bin/bash
 set -e
 
+cd /repo
+echo "[entrypoint] Pulling latest code..."
+git pull --ff-only origin main || true
+
 cd /repo/frontend
 
-# Write .env from environment variable
 if [ -n "$EXPO_PUBLIC_API_URL" ]; then
   echo "EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL" > .env
   echo "[entrypoint] .env written: EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL"
 fi
 
-# Start sync loop in background (checks every 5 minutes)
+echo "[entrypoint] Installing dependencies..."
+npm install
+
 /sync.sh &
 
 echo "[entrypoint] Starting Expo dev server..."
