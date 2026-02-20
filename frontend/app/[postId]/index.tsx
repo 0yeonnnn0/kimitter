@@ -397,24 +397,6 @@ export default function PostDetailScreen() {
         )}
       />
 
-      <BottomSheet visible={menuComment !== null} onClose={() => setMenuComment(null)}>
-        <View style={styles.menuContainer}>
-          {menuComment && currentUser?.id === menuComment.comment.user.id ? (
-            <TouchableOpacity style={styles.menuItem} onPress={handleMenuEdit}>
-              <Ionicons name="pencil-outline" size={22} color="#1a1a1a" />
-              <Text style={styles.menuItemText}>수정</Text>
-            </TouchableOpacity>
-          ) : null}
-          {menuComment && currentUser?.id === menuComment.comment.user.id ? (
-            <View style={styles.menuDivider} />
-          ) : null}
-          <TouchableOpacity style={styles.menuItem} onPress={handleMenuDelete}>
-            <Ionicons name="trash-outline" size={22} color="#ff3b30" />
-            <Text style={[styles.menuItemText, { color: '#ff3b30' }]}>삭제</Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheet>
-
       {replyTo ? (
         <View style={styles.replyBar}>
           <Text style={styles.replyBarText}>@{replyTo.nickname} 에게 답글</Text>
@@ -444,6 +426,24 @@ export default function PostDetailScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      <BottomSheet visible={menuComment !== null} onClose={() => setMenuComment(null)}>
+        <View style={styles.menuContainer}>
+          {menuComment && currentUser?.id === menuComment.comment.user.id ? (
+            <TouchableOpacity style={styles.menuItem} onPress={handleMenuEdit}>
+              <Ionicons name="pencil-outline" size={22} color="#1a1a1a" />
+              <Text style={styles.menuItemText}>수정</Text>
+            </TouchableOpacity>
+          ) : null}
+          {menuComment && currentUser?.id === menuComment.comment.user.id ? (
+            <View style={styles.menuDivider} />
+          ) : null}
+          <TouchableOpacity style={styles.menuItem} onPress={handleMenuDelete}>
+            <Ionicons name="trash-outline" size={22} color="#ff3b30" />
+            <Text style={[styles.menuItemText, { color: '#ff3b30' }]}>삭제</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
     </KeyboardAvoidingView>
   );
 }

@@ -12,7 +12,7 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import type { PostMedia } from '../types/models';
 import { getFileUrl } from '../config/constants';
@@ -45,6 +45,36 @@ function clampHeight(
   const ratio = naturalHeight / naturalWidth;
   const raw = displayWidth * ratio;
   return Math.round(Math.max(MIN_HEIGHT, Math.min(raw, maxHeight)));
+}
+
+function VideoThumbnailItem({ uri, width, height }: { uri: string; width: number; height: number }) {
+  const player = useVideoPlayer(uri);
+
+  return (
+    <View style={{ width, height, borderRadius: 12, overflow: 'hidden' }}>
+      <VideoView
+        player={player}
+        style={{ width, height }}
+        nativeControls={false}
+      />
+      <View style={styles.playOverlay}>
+        <Ionicons name="play-circle" size={48} color="rgba(255,255,255,0.9)" />
+      </View>
+    </View>
+  );
+}
+
+function FullscreenVideoPlayer({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.play();
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={styles.fullscreenImage}
+    />
+  );
 }
 
 const DISMISS_THRESHOLD = 320;
@@ -266,12 +296,9 @@ function FullscreenViewer({ media, initialIndex, onClose }: FullscreenViewerProp
           {...panResponder.panHandlers}
         >
           {media[currentIndex].mediaType === 'VIDEO' ? (
-            <Video
-              source={{ uri: getFileUrl(media[currentIndex].fileUrl) }}
-              style={styles.fullscreenImage}
-              resizeMode={ResizeMode.CONTAIN}
-              useNativeControls
-              shouldPlay
+            <FullscreenVideoPlayer
+              key={media[currentIndex].id}
+              uri={getFileUrl(media[currentIndex].fileUrl)}
             />
           ) : (
             <Image
@@ -378,18 +405,11 @@ export default function MediaGallery({ media, paddingLeft, onPressBackground }: 
               onPress={() => setSelectedIndex(index)}
             >
               {m.mediaType === 'VIDEO' ? (
-                <View style={{ width: displayWidth, height: rowHeight }}>
-                  <Video
-                    source={{ uri: getFileUrl(m.fileUrl) }}
-                    style={{ width: displayWidth, height: rowHeight, borderRadius: 12 }}
-                    resizeMode={ResizeMode.COVER}
-                    shouldPlay={false}
-                    positionMillis={0}
-                  />
-                  <View style={styles.playOverlay}>
-                    <Ionicons name="play-circle" size={48} color="rgba(255,255,255,0.9)" />
-                  </View>
-                </View>
+                <VideoThumbnailItem
+                  uri={getFileUrl(m.fileUrl)}
+                  width={displayWidth}
+                  height={rowHeight}
+                />
               ) : (
                 <Image
                   source={{ uri: getFileUrl(m.fileUrl) }}
