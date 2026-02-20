@@ -1,7 +1,7 @@
 import { prisma } from '../config/database';
 
 const postInclude = {
-  user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+  user: { select: { id: true, username: true, nickname: true, profileImageUrl: true, role: true } },
   media: true,
   tags: { include: { tag: true } },
   _count: { select: { likes: true, comments: true } },

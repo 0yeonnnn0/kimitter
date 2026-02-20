@@ -90,7 +90,7 @@ export const getUserPosts = async (
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true, role: true } },
         media: { orderBy: { position: 'asc' as const } },
         tags: { include: { tag: true } },
         _count: { select: { likes: true, comments: true } },
@@ -131,7 +131,7 @@ export const getUserRepliedPosts = async (
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true, role: true } },
         media: { orderBy: { position: 'asc' as const } },
         tags: { include: { tag: true } },
         _count: { select: { likes: true, comments: true } },
@@ -169,7 +169,7 @@ export const getUserMediaPosts = async (
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+        user: { select: { id: true, username: true, nickname: true, profileImageUrl: true, role: true } },
         media: { orderBy: { position: 'asc' as const } },
         tags: { include: { tag: true } },
         _count: { select: { likes: true, comments: true } },

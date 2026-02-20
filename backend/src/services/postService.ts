@@ -3,7 +3,7 @@ import { prisma } from '../config/database';
 import { ForbiddenError, NotFoundError } from '../utils/errors';
 
 const postInclude = {
-  user: { select: { id: true, username: true, nickname: true, profileImageUrl: true } },
+  user: { select: { id: true, username: true, nickname: true, profileImageUrl: true, role: true } },
   media: { orderBy: { position: 'asc' as const } },
   tags: { include: { tag: true } },
   _count: { select: { likes: true, comments: true } },
