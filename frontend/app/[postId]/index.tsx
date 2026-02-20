@@ -23,6 +23,8 @@ import { getFileUrl } from '../../src/config/constants';
 import MediaGallery from '../../src/components/MediaGallery';
 import BotBadge from '../../src/components/BotBadge';
 import MarkdownText from '../../src/components/MarkdownText';
+import BottomSheet from '../../src/components/BottomSheet';
+import { useAuthStore } from '../../src/stores/authStore';
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -48,6 +50,85 @@ export default function PostDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingComment, setEditingComment] = useState<{ id: number; parentId?: number } | null>(null);
+  const [editText, setEditText] = useState('');
+  const [menuComment, setMenuComment] = useState<{ comment: Comment; parentId?: number } | null>(null);
+  const currentUser = useAuthStore((s) => s.user);
+
+  const handleDeleteComment = (commentId: number, parentId?: number) => {
+    Alert.alert('댓글 삭제', '이 댓글을 삭제하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await commentService.deleteComment(commentId);
+            if (parentId) {
+              setComments((prev) =>
+                prev.map((c) =>
+                  c.id === parentId
+                    ? { ...c, replies: c.replies?.filter((r) => r.id !== commentId) }
+                    : c,
+                ),
+              );
+            } else {
+              setComments((prev) => prev.filter((c) => c.id !== commentId));
+            }
+          } catch {
+            Alert.alert('오류', '댓글 삭제에 실패했습니다.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const canManage = (commentUserId: number): boolean => {
+    if (!currentUser) return false;
+    return currentUser.id === commentUserId || currentUser.role === 'ADMIN';
+  };
+
+  const handleEditComment = async () => {
+    if (!editingComment || !editText.trim()) return;
+    try {
+      await commentService.updateComment(editingComment.id, editText.trim());
+      if (editingComment.parentId) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === editingComment.parentId
+              ? { ...c, replies: c.replies?.map((r) => r.id === editingComment.id ? { ...r, content: editText.trim() } : r) }
+              : c,
+          ),
+        );
+      } else {
+        setComments((prev) =>
+          prev.map((c) => c.id === editingComment.id ? { ...c, content: editText.trim() } : c),
+        );
+      }
+      setEditingComment(null);
+      setEditText('');
+    } catch {
+      Alert.alert('오류', '댓글 수정에 실패했습니다.');
+    }
+  };
+
+  const showCommentMenu = (comment: Comment, parentId?: number) => {
+    setMenuComment({ comment, parentId });
+  };
+
+  const handleMenuEdit = () => {
+    if (!menuComment) return;
+    setEditingComment({ id: menuComment.comment.id, parentId: menuComment.parentId });
+    setEditText(menuComment.comment.content);
+    setMenuComment(null);
+  };
+
+  const handleMenuDelete = () => {
+    if (!menuComment) return;
+    const { comment, parentId } = menuComment;
+    setMenuComment(null);
+    handleDeleteComment(comment.id, parentId);
+  };
 
   const loadPost = useCallback(async () => {
     if (!postId) return;
@@ -222,11 +303,39 @@ export default function PostDetailScreen() {
                 </View>
               )}
               <View style={styles.commentBody}>
-                <View style={styles.nicknameRow}>
-                  <Text style={styles.commentNickname}>{item.user.nickname}</Text>
-                  {item.user.role === 'BOT' ? <BotBadge /> : null}
+                <View style={styles.commentTopRow}>
+                  <View style={styles.nicknameRow}>
+                    <Text style={styles.commentNickname}>{item.user.nickname}</Text>
+                    {item.user.role === 'BOT' ? <BotBadge /> : null}
+                  </View>
+                  {canManage(item.user.id) ? (
+                    <TouchableOpacity
+                      onPress={() => showCommentMenu(item)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="ellipsis-vertical" size={16} color="#999" />
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
-                <MarkdownText content={item.content} fontSize={15} />
+                {editingComment?.id === item.id && !editingComment.parentId ? (
+                  <View style={styles.editRow}>
+                    <TextInput
+                      style={styles.editInput}
+                      value={editText}
+                      onChangeText={setEditText}
+                      multiline
+                      autoFocus
+                    />
+                    <TouchableOpacity onPress={handleEditComment}>
+                      <Text style={styles.editSave}>저장</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setEditingComment(null)}>
+                      <Text style={styles.editCancel}>취소</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <MarkdownText content={item.content} fontSize={15} />
+                )}
                 <View style={styles.commentActions}>
                   <Text style={styles.commentDate}>{formatDate(item.createdAt)}</Text>
                   <TouchableOpacity
@@ -247,11 +356,39 @@ export default function PostDetailScreen() {
                   </View>
                 )}
                 <View style={styles.commentBody}>
-                  <View style={styles.nicknameRow}>
-                    <Text style={styles.commentNickname}>{reply.user.nickname}</Text>
-                    {reply.user.role === 'BOT' ? <BotBadge /> : null}
+                  <View style={styles.commentTopRow}>
+                    <View style={styles.nicknameRow}>
+                      <Text style={styles.commentNickname}>{reply.user.nickname}</Text>
+                      {reply.user.role === 'BOT' ? <BotBadge /> : null}
+                    </View>
+                    {canManage(reply.user.id) ? (
+                      <TouchableOpacity
+                        onPress={() => showCommentMenu(reply, item.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="ellipsis-vertical" size={16} color="#999" />
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
-                  <MarkdownText content={reply.content} fontSize={15} />
+                  {editingComment?.id === reply.id ? (
+                    <View style={styles.editRow}>
+                      <TextInput
+                        style={styles.editInput}
+                        value={editText}
+                        onChangeText={setEditText}
+                        multiline
+                        autoFocus
+                      />
+                      <TouchableOpacity onPress={handleEditComment}>
+                        <Text style={styles.editSave}>저장</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => setEditingComment(null)}>
+                        <Text style={styles.editCancel}>취소</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <MarkdownText content={reply.content} fontSize={15} />
+                  )}
                   <Text style={styles.commentDate}>{formatDate(reply.createdAt)}</Text>
                 </View>
               </View>
@@ -259,6 +396,24 @@ export default function PostDetailScreen() {
           </View>
         )}
       />
+
+      <BottomSheet visible={menuComment !== null} onClose={() => setMenuComment(null)}>
+        <View style={styles.menuContainer}>
+          {menuComment && currentUser?.id === menuComment.comment.user.id ? (
+            <TouchableOpacity style={styles.menuItem} onPress={handleMenuEdit}>
+              <Ionicons name="pencil-outline" size={22} color="#1a1a1a" />
+              <Text style={styles.menuItemText}>수정</Text>
+            </TouchableOpacity>
+          ) : null}
+          {menuComment && currentUser?.id === menuComment.comment.user.id ? (
+            <View style={styles.menuDivider} />
+          ) : null}
+          <TouchableOpacity style={styles.menuItem} onPress={handleMenuDelete}>
+            <Ionicons name="trash-outline" size={22} color="#ff3b30" />
+            <Text style={[styles.menuItemText, { color: '#ff3b30' }]}>삭제</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
 
       {replyTo ? (
         <View style={styles.replyBar}>
@@ -455,6 +610,37 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#666',
   },
+  commentTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  editRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  editInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  editSave: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0a7cff',
+  },
+  editCancel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#999',
+  },
   replyItem: {
     flexDirection: 'row',
     gap: 10,
@@ -508,5 +694,24 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.6,
+  },
+  menuContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 32,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
   },
 });
