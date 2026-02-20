@@ -26,10 +26,27 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://family_user:family_secret_pw@postgres:5432/family_threads
+      BOT_WEBHOOK_URL: http://kimitter-bot:4000/webhook
     volumes:
       - /volume1/docker/kimitter/uploads:/app/uploads
     depends_on:
       - postgres
+    restart: unless-stopped
+    networks:
+      - kimitter-net
+
+  bot:
+    build: ./bot
+    container_name: kimitter-bot
+    ports:
+      - '4000:4000'
+    env_file:
+      - ./bot/.env
+    environment:
+      NODE_ENV: production
+      KIMITTER_API_URL: http://kimitter-backend:3000/api
+    depends_on:
+      - backend
     restart: unless-stopped
     networks:
       - kimitter-net
