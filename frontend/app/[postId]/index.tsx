@@ -183,7 +183,11 @@ export default function PostDetailScreen() {
                 <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
               </View>
             </View>
-            {post.content ? <MarkdownText content={post.content} fontSize={16} /> : null}
+            {post.content ? (
+              <View style={styles.postContentWrap}>
+                <MarkdownText content={post.content} fontSize={16} />
+              </View>
+            ) : null}
             <MediaGallery media={post.media} />
             {post.tags.length > 0 ? (
               <View style={styles.tags}>
@@ -360,6 +364,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     lineHeight: 24,
+  },
+  postContentWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   tags: {
     flexDirection: 'row',
