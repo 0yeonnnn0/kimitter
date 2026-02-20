@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { STORAGE_KEYS } from '../config/constants';
+import { STORAGE_KEYS, API_URL } from '../config/constants';
 import * as authService from '../services/authService';
 import type { User } from '../types/models';
 
@@ -67,17 +68,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   restoreSession: async () => {
     try {
-      const token = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+      const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
       const userStr = await SecureStore.getItemAsync(STORAGE_KEYS.USER);
-      if (token && userStr) {
-        const user = JSON.parse(userStr) as User;
-        set({ user, accessToken: token, isLoggedIn: true });
+
+      if (!refreshToken || !userStr) {
+        return;
+      }
+
+      const user = JSON.parse(userStr) as User;
+
+      try {
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+        const newAccessToken: string = data.data.accessToken;
+        await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
+        if (data.data.refreshToken) {
+          await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, data.data.refreshToken);
+        }
+        set({ user, accessToken: newAccessToken, isLoggedIn: true });
+      } catch {
+        const cachedToken = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+        if (cachedToken) {
+          set({ user, accessToken: cachedToken, isLoggedIn: true });
+        }
       }
     } catch {
       await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
       await SecureStore.deleteItemAsync(STORAGE_KEYS.USER);
-      set({ user: null, accessToken: null, isLoggedIn: false });
     } finally {
       set({ isLoading: false });
     }
