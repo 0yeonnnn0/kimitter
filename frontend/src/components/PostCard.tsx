@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores/authStore';
 import { usePostActionStore } from '../stores/postActionStore';
 import MediaGallery from './MediaGallery';
 import BotBadge from './BotBadge';
+import MarkdownText from './MarkdownText';
 
 interface PostCardProps {
   post: Post;
@@ -98,7 +99,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
           </TouchableOpacity>
 
           <TouchableOpacity activeOpacity={0.7} onPress={navigateToDetail}>
-            {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
+            {post.content ? <MarkdownText content={post.content} fontSize={15} /> : null}
           </TouchableOpacity>
         </View>
       </View>

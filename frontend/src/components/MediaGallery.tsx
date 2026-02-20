@@ -12,6 +12,7 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import type { PostMedia } from '../types/models';
 import { getFileUrl } from '../config/constants';
@@ -264,11 +265,21 @@ function FullscreenViewer({ media, initialIndex, onClose }: FullscreenViewerProp
           ]}
           {...panResponder.panHandlers}
         >
-          <Image
-            source={{ uri: getFileUrl(media[currentIndex].fileUrl) }}
-            style={styles.fullscreenImage}
-            resizeMode="contain"
-          />
+          {media[currentIndex].mediaType === 'VIDEO' ? (
+            <Video
+              source={{ uri: getFileUrl(media[currentIndex].fileUrl) }}
+              style={styles.fullscreenImage}
+              resizeMode={ResizeMode.CONTAIN}
+              useNativeControls
+              shouldPlay
+            />
+          ) : (
+            <Image
+              source={{ uri: getFileUrl(media[currentIndex].fileUrl) }}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          )}
         </Animated.View>
 
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -299,6 +310,13 @@ export default function MediaGallery({ media, paddingLeft, onPressBackground }: 
 
   const fetchSizes = useCallback(() => {
     media.forEach((m) => {
+      if (m.mediaType === 'VIDEO') {
+        setSizes((prev) => {
+          if (prev[m.id]) return prev;
+          return { ...prev, [m.id]: { width: 16, height: 9 } };
+        });
+        return;
+      }
       const uri = getFileUrl(m.fileUrl);
       Image.getSize(
         uri,
@@ -359,11 +377,26 @@ export default function MediaGallery({ media, paddingLeft, onPressBackground }: 
               activeOpacity={0.85}
               onPress={() => setSelectedIndex(index)}
             >
-              <Image
-                source={{ uri: getFileUrl(m.fileUrl) }}
-                style={{ width: displayWidth, height: rowHeight, borderRadius: 12 }}
-                resizeMode="cover"
-              />
+              {m.mediaType === 'VIDEO' ? (
+                <View style={{ width: displayWidth, height: rowHeight }}>
+                  <Video
+                    source={{ uri: getFileUrl(m.fileUrl) }}
+                    style={{ width: displayWidth, height: rowHeight, borderRadius: 12 }}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay={false}
+                    positionMillis={0}
+                  />
+                  <View style={styles.playOverlay}>
+                    <Ionicons name="play-circle" size={48} color="rgba(255,255,255,0.9)" />
+                  </View>
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: getFileUrl(m.fileUrl) }}
+                  style={{ width: displayWidth, height: rowHeight, borderRadius: 12 }}
+                  resizeMode="cover"
+                />
+              )}
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -422,5 +455,12 @@ const styles = StyleSheet.create({
   pageText: {
     color: '#fff',
     fontSize: 14,
+  },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
 });

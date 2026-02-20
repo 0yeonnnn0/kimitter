@@ -36,7 +36,7 @@ services:
       - kimitter-net
 
   bot:
-    build: ./bot
+    image: dusehd1/kimitter-bot:latest
     container_name: kimitter-bot
     ports:
       - '4000:4000'
@@ -47,6 +47,19 @@ services:
       KIMITTER_API_URL: http://kimitter-backend:3000/api
     depends_on:
       - backend
+    restart: unless-stopped
+    networks:
+      - kimitter-net
+
+  expo-dev:
+    image: dusehd1/kimitter-expo-dev:latest
+    container_name: kimitter-expo-dev
+    ports:
+      - '8081:80'
+    environment:
+      EXPO_PUBLIC_API_URL: https://kimitter.yeonnnn.xyz/api
+      EXPO_HOSTNAME: expo.kimitter.yeonnnn.xyz
+      SYNC_INTERVAL: '300'
     restart: unless-stopped
     networks:
       - kimitter-net

@@ -22,6 +22,7 @@ import type { Post, Comment } from '../../src/types/models';
 import { getFileUrl } from '../../src/config/constants';
 import MediaGallery from '../../src/components/MediaGallery';
 import BotBadge from '../../src/components/BotBadge';
+import MarkdownText from '../../src/components/MarkdownText';
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -182,7 +183,7 @@ export default function PostDetailScreen() {
                 <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
               </View>
             </View>
-            {post.content ? <Text style={styles.postContent}>{post.content}</Text> : null}
+            {post.content ? <MarkdownText content={post.content} fontSize={16} /> : null}
             <MediaGallery media={post.media} />
             {post.tags.length > 0 ? (
               <View style={styles.tags}>
@@ -221,7 +222,7 @@ export default function PostDetailScreen() {
                   <Text style={styles.commentNickname}>{item.user.nickname}</Text>
                   {item.user.role === 'BOT' ? <BotBadge /> : null}
                 </View>
-                <Text style={styles.commentContent}>{item.content}</Text>
+                <MarkdownText content={item.content} fontSize={15} />
                 <View style={styles.commentActions}>
                   <Text style={styles.commentDate}>{formatDate(item.createdAt)}</Text>
                   <TouchableOpacity
@@ -246,7 +247,7 @@ export default function PostDetailScreen() {
                     <Text style={styles.commentNickname}>{reply.user.nickname}</Text>
                     {reply.user.role === 'BOT' ? <BotBadge /> : null}
                   </View>
-                  <Text style={styles.commentContent}>{reply.content}</Text>
+                  <MarkdownText content={reply.content} fontSize={15} />
                   <Text style={styles.commentDate}>{formatDate(reply.createdAt)}</Text>
                 </View>
               </View>
