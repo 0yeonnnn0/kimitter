@@ -1,5 +1,6 @@
 import { config } from './config/environment';
 import { createWebhookServer } from './webhook/webhookServer';
+import { initializeBotClients } from './webhook/commentReplyHandler';
 import { BotScheduler } from './scheduler';
 import { logger } from './utils/logger';
 
@@ -8,6 +9,8 @@ export async function main(): Promise<void> {
 
   const scheduler = new BotScheduler();
   await scheduler.initialize();
+
+  await initializeBotClients();
 
   const app = createWebhookServer();
   const server = app.listen(config.bot.webhookPort, () => {
