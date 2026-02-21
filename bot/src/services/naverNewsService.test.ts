@@ -3,7 +3,6 @@ import {
   searchNews,
   stripHtmlTags,
   filterRecentNews,
-  getPoliticalNews,
   getGeneralNews,
   NewsItem,
 } from './naverNewsService';
@@ -196,49 +195,6 @@ describe('naverNewsService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].title).toBe('1시간 전 뉴스');
-    });
-  });
-
-  describe('getPoliticalNews', () => {
-    it('should return political news items', async () => {
-      const now = new Date();
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-
-      const mockResponse = {
-        data: {
-          items: Array.from({ length: 30 }, (_, i) => ({
-            title: `정치 뉴스 ${i + 1}`,
-            originallink: `https://example.com/${i + 1}`,
-            link: `https://example.com/${i + 1}`,
-            description: `정치 설명 ${i + 1}`,
-            pubDate: oneHourAgo.toUTCString(),
-          })),
-        },
-      };
-
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
-
-      const result = await getPoliticalNews();
-
-      expect(result).toHaveLength(10);
-      expect(result[0].title).toContain('정치 뉴스');
-    });
-
-    it('should call searchNews with correct query', async () => {
-      const mockResponse = { data: { items: [] } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
-
-      await getPoliticalNews();
-
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            query: '한국 정치',
-            display: 30,
-          }),
-        }),
-      );
     });
   });
 

@@ -1,6 +1,6 @@
 import { KimitterClient } from '../api/kimitterClient';
 
-export type BotType = 'stock' | 'politics' | 'news';
+export type BotType = 'stock' | 'news';
 
 export interface BotConfig {
   type: BotType;

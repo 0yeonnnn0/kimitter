@@ -90,10 +90,6 @@ export const login = async (username: string, password: string) => {
     throw new UnauthorizedError('Invalid credentials');
   }
 
-  if (user.role === 'BOT') {
-    throw new ForbiddenError('Bot accounts cannot login');
-  }
-
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     throw new UnauthorizedError('Invalid credentials');

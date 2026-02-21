@@ -64,41 +64,6 @@ describe('openaiService', () => {
       );
     });
 
-    it('should generate politics post content with correct prompt', async () => {
-      const mockResponse = {
-        choices: [
-          {
-            message: {
-              content: '🏛️ 오늘의 정치 뉴스...',
-            },
-          },
-        ],
-        usage: {
-          prompt_tokens: 120,
-          completion_tokens: 250,
-          total_tokens: 370,
-        },
-      };
-
-      mockCreate.mockResolvedValue(mockResponse);
-
-      const result = await generatePostContent('politics', '정치 뉴스 데이터');
-
-      expect(result).toBe('🏛️ 오늘의 정치 뉴스...');
-      expect(mockCreate).toHaveBeenCalledWith({
-        model: expect.any(String),
-        messages: [
-          { role: 'system', content: prompts.politicsPost },
-          { role: 'user', content: '정치 뉴스 데이터' },
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-      });
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('politics post'),
-      );
-    });
-
     it('should generate news post content with correct prompt', async () => {
       const mockResponse = {
         choices: [
@@ -232,7 +197,7 @@ describe('openaiService', () => {
       mockCreate.mockRejectedValue(new Error('API Error'));
 
       const result = await generateCommentReply(
-        'politics',
+        'news',
         '게시물 내용',
         [],
         '댓글',
@@ -240,7 +205,7 @@ describe('openaiService', () => {
 
       expect(result).toBeNull();
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to generate politics comment reply'),
+        expect.stringContaining('Failed to generate news comment reply'),
         expect.any(Error),
       );
     });

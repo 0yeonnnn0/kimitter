@@ -138,7 +138,7 @@ describe('commentReplyHandler', () => {
         .mockResolvedValue('This is an AI-generated reply to a reply');
 
       const mockGetBotFn = jest.fn().mockResolvedValue({
-        botType: 'politics',
+        botType: 'news',
         client: mockClient,
       });
 

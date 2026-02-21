@@ -3,7 +3,7 @@ import { config } from '../config/environment';
 import { prompts } from '../config/prompts';
 import { logger } from '../utils/logger';
 
-export type BotType = 'stock' | 'politics' | 'news';
+export type BotType = 'stock' | 'news';
 
 let openaiClient: OpenAI | null = null;
 
@@ -29,7 +29,6 @@ export async function generatePostContent(
 
     const promptMap: Record<BotType, string> = {
       stock: prompts.stockPost,
-      politics: prompts.politicsPost,
       news: prompts.newsPost,
     };
 
@@ -71,7 +70,6 @@ export async function generateCommentReply(
 
     const replyPromptMap: Record<BotType, string> = {
       stock: prompts.stockReply,
-      politics: prompts.politicsReply,
       news: prompts.newsReply,
     };
 

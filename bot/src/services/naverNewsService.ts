@@ -72,16 +72,7 @@ export function filterRecentNews(items: NewsItem[], hoursAgo: number = 24): News
 }
 
 /**
- * Get political news (한국 정치)
- */
-export async function getPoliticalNews(): Promise<NewsItem[]> {
-  const items = await searchNews('한국 정치', 30);
-  const recentItems = filterRecentNews(items, 24);
-  return recentItems.slice(0, 10);
-}
-
-/**
- * Get general news (한국 뉴스) excluding political/stock keywords
+ * Get general news (한국 뉴스) excluding stock keywords
  */
 export async function getGeneralNews(): Promise<NewsItem[]> {
   const items = await searchNews('한국 뉴스', 50);

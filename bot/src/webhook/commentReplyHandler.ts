@@ -33,11 +33,6 @@ export const botClients = new Map<BotType, KimitterClient>();
 export async function initializeBotClients(): Promise<void> {
   const botConfigs: Array<{ type: BotType; username: string; password: string }> = [
     { type: 'stock', username: config.bots.stock.username, password: config.bots.stock.password },
-    {
-      type: 'politics',
-      username: config.bots.politics.username,
-      password: config.bots.politics.password,
-    },
     { type: 'news', username: config.bots.news.username, password: config.bots.news.password },
   ];
 

@@ -14,10 +14,6 @@ export const config = {
       username: process.env.BOT_STOCK_USERNAME || 'stock-bot',
       password: process.env.BOT_STOCK_PASSWORD || '',
     },
-    politics: {
-      username: process.env.BOT_POLITICS_USERNAME || 'politics-bot',
-      password: process.env.BOT_POLITICS_PASSWORD || '',
-    },
     news: {
       username: process.env.BOT_NEWS_USERNAME || 'news-bot',
       password: process.env.BOT_NEWS_PASSWORD || '',

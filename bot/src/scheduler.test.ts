@@ -5,7 +5,6 @@ import { KimitterClient } from './api/kimitterClient';
 jest.mock('node-cron');
 jest.mock('./api/kimitterClient');
 jest.mock('./bots/stockBot');
-jest.mock('./bots/politicsBot');
 jest.mock('./bots/newsBot');
 jest.mock('./config/environment', () => ({
   config: {
@@ -15,10 +14,6 @@ jest.mock('./config/environment', () => ({
     bots: {
       stock: {
         username: 'stock-bot',
-        password: 'test-password',
-      },
-      politics: {
-        username: 'politics-bot',
         password: 'test-password',
       },
       news: {
@@ -39,17 +34,12 @@ const mockStop = jest.fn();
 describe('BotScheduler', () => {
   let scheduler: BotScheduler;
   let mockStockClient: jest.Mocked<KimitterClient>;
-  let mockPoliticsClient: jest.Mocked<KimitterClient>;
   let mockNewsClient: jest.Mocked<KimitterClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     mockStockClient = {
-      login: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<KimitterClient>;
-
-    mockPoliticsClient = {
       login: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<KimitterClient>;
 
@@ -61,8 +51,6 @@ describe('BotScheduler', () => {
       (config) => {
         if (config.username === 'stock-bot') {
           return mockStockClient;
-        } else if (config.username === 'politics-bot') {
-          return mockPoliticsClient;
         } else {
           return mockNewsClient;
         }
@@ -79,18 +67,13 @@ describe('BotScheduler', () => {
   });
 
   describe('initialize', () => {
-    it('should create and login 3 bot clients', async () => {
+    it('should create and login 2 bot clients', async () => {
       await scheduler.initialize();
 
-      expect(KimitterClient).toHaveBeenCalledTimes(3);
+      expect(KimitterClient).toHaveBeenCalledTimes(2);
       expect(KimitterClient).toHaveBeenCalledWith({
         apiUrl: 'http://localhost:3000/api',
         username: 'stock-bot',
-        password: 'test-password',
-      });
-      expect(KimitterClient).toHaveBeenCalledWith({
-        apiUrl: 'http://localhost:3000/api',
-        username: 'politics-bot',
         password: 'test-password',
       });
       expect(KimitterClient).toHaveBeenCalledWith({
@@ -100,7 +83,6 @@ describe('BotScheduler', () => {
       });
 
       expect(mockStockClient.login).toHaveBeenCalledTimes(1);
-      expect(mockPoliticsClient.login).toHaveBeenCalledTimes(1);
       expect(mockNewsClient.login).toHaveBeenCalledTimes(1);
     });
   });
@@ -110,19 +92,13 @@ describe('BotScheduler', () => {
       await scheduler.initialize();
     });
 
-    it('should register 3 cron jobs with correct expressions', () => {
+    it('should register 2 cron jobs with correct expressions', () => {
       scheduler.start();
 
-      expect(mockSchedule).toHaveBeenCalledTimes(3);
+      expect(mockSchedule).toHaveBeenCalledTimes(2);
 
       expect(mockSchedule).toHaveBeenCalledWith(
         '0 8 * * *',
-        expect.any(Function),
-        { timezone: 'Asia/Seoul' },
-      );
-
-      expect(mockSchedule).toHaveBeenCalledWith(
-        '1 8 * * *',
         expect.any(Function),
         { timezone: 'Asia/Seoul' },
       );
@@ -134,13 +110,11 @@ describe('BotScheduler', () => {
       );
 
       const tasks = scheduler.getTasks();
-      expect(tasks).toHaveLength(3);
-      expect(tasks[0].name).toBe('politics-bot');
+      expect(tasks).toHaveLength(2);
+      expect(tasks[0].name).toBe('news-bot');
       expect(tasks[0].cronExpression).toBe('0 8 * * *');
-      expect(tasks[1].name).toBe('news-bot');
-      expect(tasks[1].cronExpression).toBe('1 8 * * *');
-      expect(tasks[2].name).toBe('stock-bot');
-      expect(tasks[2].cronExpression).toBe('2 8 * * 1');
+      expect(tasks[1].name).toBe('stock-bot');
+      expect(tasks[1].cronExpression).toBe('2 8 * * 1');
     });
 
     it('should not register jobs when BOT_ENABLED is false', () => {
@@ -153,10 +127,6 @@ describe('BotScheduler', () => {
           bots: {
             stock: {
               username: 'stock-bot',
-              password: 'test-password',
-            },
-            politics: {
-              username: 'politics-bot',
               password: 'test-password',
             },
             news: {
@@ -190,7 +160,7 @@ describe('BotScheduler', () => {
     it('should stop all scheduled tasks', () => {
       scheduler.stop();
 
-      expect(mockStop).toHaveBeenCalledTimes(3);
+      expect(mockStop).toHaveBeenCalledTimes(2);
     });
   });
 

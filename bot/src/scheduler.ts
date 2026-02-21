@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import { config } from './config/environment';
 import { StockBot } from './bots/stockBot';
-import { PoliticsBot } from './bots/politicsBot';
 import { NewsBot } from './bots/newsBot';
 import { KimitterClient } from './api/kimitterClient';
 import { logger } from './utils/logger';
@@ -25,12 +24,6 @@ export class BotScheduler {
       password: config.bots.stock.password,
     });
 
-    const politicsClient = new KimitterClient({
-      apiUrl: config.kimitter.apiUrl,
-      username: config.bots.politics.username,
-      password: config.bots.politics.password,
-    });
-
     const newsClient = new KimitterClient({
       apiUrl: config.kimitter.apiUrl,
       username: config.bots.news.username,
@@ -38,11 +31,9 @@ export class BotScheduler {
     });
 
     await stockClient.login();
-    await politicsClient.login();
     await newsClient.login();
 
     this.clients.set('stock', stockClient);
-    this.clients.set('politics', politicsClient);
     this.clients.set('news', newsClient);
 
     logger.info('All bot clients initialized and logged in');
@@ -55,28 +46,17 @@ export class BotScheduler {
     }
 
     const stockClient = this.clients.get('stock');
-    const politicsClient = this.clients.get('politics');
     const newsClient = this.clients.get('news');
 
-    if (!stockClient || !politicsClient || !newsClient) {
+    if (!stockClient || !newsClient) {
       throw new Error('Bot clients not initialized. Call initialize() first.');
     }
 
     const stockBot = new StockBot(stockClient);
-    const politicsBot = new PoliticsBot(politicsClient);
     const newsBot = new NewsBot(newsClient);
 
-    const politicsTask = cron.schedule(
-      '0 8 * * *',
-      async () => {
-        logger.info('Running politics bot...');
-        await politicsBot.generatePost();
-      },
-      { timezone: 'Asia/Seoul' },
-    );
-
     const newsTask = cron.schedule(
-      '1 8 * * *',
+      '0 8 * * *',
       async () => {
         logger.info('Running news bot...');
         await newsBot.generatePost();
@@ -94,14 +74,8 @@ export class BotScheduler {
     );
 
     this.tasks.push({
-      name: 'politics-bot',
-      cronExpression: '0 8 * * *',
-      task: politicsTask,
-    });
-
-    this.tasks.push({
       name: 'news-bot',
-      cronExpression: '1 8 * * *',
+      cronExpression: '0 8 * * *',
       task: newsTask,
     });
 
