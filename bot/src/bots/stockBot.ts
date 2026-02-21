@@ -35,12 +35,18 @@ export class StockBot implements BaseBot {
         return;
       }
 
-      const rawData = trendingStocks
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const dateStr = `${yesterday.getFullYear()}.${String(yesterday.getMonth() + 1).padStart(2, '0')}.${String(yesterday.getDate()).padStart(2, '0')}`;
+
+      const stockList = trendingStocks
         .map((stock) => {
           const sign = stock.changeRate > 0 ? '▲' : stock.changeRate < 0 ? '▼' : '-';
           return `${stock.rank}. ${stock.name} | ₩${stock.currentPrice.toLocaleString()} | ${sign} ${Math.abs(stock.changeRate)}% | 거래량 ${stock.volume.toLocaleString()}`;
         })
         .join('\n');
+
+      const rawData = `날짜: ${dateStr}\n${stockList}`;
 
       const content = await generatePostContent('stock', rawData);
 
