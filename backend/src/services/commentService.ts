@@ -80,7 +80,7 @@ export const createComment = async (
 
   const postAuthor = await prisma.user.findUnique({
     where: { id: post.userId },
-    select: { id: true, role: true },
+    select: { id: true, username: true, role: true },
   });
   const commentAuthor = await prisma.user.findUnique({
     where: { id: userId },
@@ -97,6 +97,7 @@ export const createComment = async (
         username: commentAuthor!.username,
         role: commentAuthor!.role,
       },
+      postAuthorUsername: postAuthor.username,
       parentCommentId: parentCommentId ?? null,
     }).catch((err) => logger.error('Webhook dispatch failed', { error: err }));
   }
@@ -199,7 +200,7 @@ export const createReply = async (commentId: number, userId: number, content: st
   if (post) {
     const postAuthor = await prisma.user.findUnique({
       where: { id: post.userId },
-      select: { id: true, role: true },
+      select: { id: true, username: true, role: true },
     });
     const replyAuthor = await prisma.user.findUnique({
       where: { id: userId },
@@ -216,6 +217,7 @@ export const createReply = async (commentId: number, userId: number, content: st
           username: replyAuthor!.username,
           role: replyAuthor!.role,
         },
+        postAuthorUsername: postAuthor.username,
         parentCommentId: commentId,
       }).catch((err) => logger.error('Webhook dispatch failed', { error: err }));
     }

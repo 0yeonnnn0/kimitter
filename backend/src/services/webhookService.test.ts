@@ -29,6 +29,7 @@ describe('webhookService', () => {
       commentId: 10,
       commentContent: 'Test comment',
       commentAuthor: { id: 2, username: 'testuser', role: 'USER' },
+      postAuthorUsername: 'stockbot',
       parentCommentId: null,
     };
 

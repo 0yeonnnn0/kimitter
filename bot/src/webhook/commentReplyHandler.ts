@@ -12,11 +12,8 @@ export interface WebhookPayload {
     username: string;
     role: string;
   };
+  postAuthorUsername: string;
   parentCommentId: number | null;
-}
-
-interface BotPostsResponse {
-  posts: Array<{ id: number }>;
 }
 
 interface CommentResponse {
@@ -29,6 +26,8 @@ interface CommentResponse {
 }
 
 export const botClients = new Map<BotType, KimitterClient>();
+
+const usernameToType = new Map<string, BotType>();
 
 export async function initializeBotClients(): Promise<void> {
   const botConfigs: Array<{ type: BotType; username: string; password: string }> = [
@@ -45,33 +44,28 @@ export async function initializeBotClients(): Promise<void> {
 
     await client.login();
     botClients.set(botConfig.type, client);
+    usernameToType.set(botConfig.username, botConfig.type);
     logger.info(`Initialized bot client: ${botConfig.type}`);
   }
 }
 
-export async function getBotTypeByPostId(
-  postId: number,
+export function getBotTypeByUsername(
+  username: string,
+  typeMap: Map<string, BotType> = usernameToType,
   clients: Map<BotType, KimitterClient> = botClients,
-): Promise<{ botType: BotType; client: KimitterClient } | null> {
-  for (const [botType, client] of clients.entries()) {
-    try {
-      const response = (await client.getMyPosts()) as BotPostsResponse;
-      const posts = response.posts || [];
+): { botType: BotType; client: KimitterClient } | null {
+  const botType = typeMap.get(username);
+  if (!botType) return null;
 
-      if (posts.some((post) => post.id === postId)) {
-        return { botType, client };
-      }
-    } catch (error) {
-      logger.error(`Failed to get posts for bot ${botType}:`, error);
-    }
-  }
+  const client = clients.get(botType);
+  if (!client) return null;
 
-  return null;
+  return { botType, client };
 }
 
 export async function handleCommentWebhook(
   payload: WebhookPayload,
-  getBotFn: typeof getBotTypeByPostId = getBotTypeByPostId,
+  getBotFn: (username: string) => { botType: BotType; client: KimitterClient } | null = getBotTypeByUsername,
 ): Promise<void> {
   try {
     if (payload.commentAuthor.role === 'BOT') {
@@ -81,7 +75,7 @@ export async function handleCommentWebhook(
       return;
     }
 
-    const botMatch = await getBotFn(payload.postId);
+    const botMatch = getBotFn(payload.postAuthorUsername);
 
     if (!botMatch) {
       logger.warn(`Post ${payload.postId} not owned by any bot, skipping reply`);

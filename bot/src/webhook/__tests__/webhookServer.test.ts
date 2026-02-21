@@ -28,6 +28,7 @@ describe('webhookServer', () => {
           username: 'testuser',
           role: 'USER',
         },
+        postAuthorUsername: 'stockbot',
         parentCommentId: null,
       };
 
@@ -44,6 +45,7 @@ describe('webhookServer', () => {
           username: 'testuser',
           role: 'USER',
         },
+        postAuthorUsername: 'stockbot',
         parentCommentId: null,
       });
     });
@@ -57,6 +59,7 @@ describe('webhookServer', () => {
           username: 'testuser',
           role: 'USER',
         },
+        postAuthorUsername: 'stockbot',
       };
 
       const response = await request(app).post('/webhook').send(payload);
@@ -73,6 +76,7 @@ describe('webhookServer', () => {
         commentAuthor: {
           id: 5,
         },
+        postAuthorUsername: 'stockbot',
       };
 
       const response = await request(app).post('/webhook').send(payload);
@@ -95,6 +99,7 @@ describe('webhookServer', () => {
           username: 'testuser',
           role: 'USER',
         },
+        postAuthorUsername: 'newsbot',
         parentCommentId: 8,
       };
 
@@ -110,6 +115,7 @@ describe('webhookServer', () => {
           username: 'testuser',
           role: 'USER',
         },
+        postAuthorUsername: 'newsbot',
         parentCommentId: 8,
       });
     });

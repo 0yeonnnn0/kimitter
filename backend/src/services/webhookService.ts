@@ -7,6 +7,7 @@ export interface WebhookPayload {
   commentId: number;
   commentContent: string;
   commentAuthor: { id: number; username: string; role: string };
+  postAuthorUsername: string;
   parentCommentId: number | null;
 }
 

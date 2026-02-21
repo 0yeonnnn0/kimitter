@@ -9,9 +9,9 @@ export function createWebhookServer(): express.Application {
   app.use(express.json());
 
   app.post('/webhook', (req, res) => {
-    const { postId, commentId, commentContent, commentAuthor, parentCommentId } = req.body;
+    const { postId, commentId, commentContent, commentAuthor, postAuthorUsername, parentCommentId } = req.body;
 
-    if (!postId || !commentId || !commentContent || !commentAuthor) {
+    if (!postId || !commentId || !commentContent || !commentAuthor || !postAuthorUsername) {
       logger.warn('Webhook request missing required fields');
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -38,6 +38,7 @@ export function createWebhookServer(): express.Application {
         username: commentAuthor.username,
         role: commentAuthor.role,
       },
+      postAuthorUsername,
       parentCommentId: parentCommentId || null,
     };
 

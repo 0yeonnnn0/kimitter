@@ -1,6 +1,6 @@
 import {
   handleCommentWebhook,
-  getBotTypeByPostId,
+  getBotTypeByUsername,
   WebhookPayload,
 } from '../commentReplyHandler';
 import * as openaiService from '../../services/openaiService';
@@ -14,7 +14,6 @@ describe('commentReplyHandler', () => {
 
   beforeEach(() => {
     mockClient = {
-      getMyPosts: jest.fn(),
       getComments: jest.fn(),
       createComment: jest.fn(),
       createReply: jest.fn(),
@@ -23,41 +22,33 @@ describe('commentReplyHandler', () => {
     jest.clearAllMocks();
   });
 
-  describe('getBotTypeByPostId', () => {
-    it('should return botType and client when post is found', async () => {
-      const clients = new Map([['stock', mockClient] as [openaiService.BotType, KimitterClient]]);
+  describe('getBotTypeByUsername', () => {
+    it('should return botType and client when username matches', () => {
+      const typeMap = new Map<string, openaiService.BotType>([['stockbot', 'stock']]);
+      const clients = new Map<openaiService.BotType, KimitterClient>([['stock', mockClient]]);
 
-      mockClient.getMyPosts.mockResolvedValue({
-        posts: [{ id: 1 }, { id: 2 }, { id: 3 }],
-      });
-
-      const result = await getBotTypeByPostId(2, clients);
+      const result = getBotTypeByUsername('stockbot', typeMap, clients);
 
       expect(result).toEqual({
         botType: 'stock',
         client: mockClient,
       });
-      expect(mockClient.getMyPosts).toHaveBeenCalled();
     });
 
-    it('should return null when post is not found', async () => {
-      const clients = new Map([['stock', mockClient] as [openaiService.BotType, KimitterClient]]);
+    it('should return null when username does not match', () => {
+      const typeMap = new Map<string, openaiService.BotType>([['stockbot', 'stock']]);
+      const clients = new Map<openaiService.BotType, KimitterClient>([['stock', mockClient]]);
 
-      mockClient.getMyPosts.mockResolvedValue({
-        posts: [{ id: 1 }, { id: 2 }, { id: 3 }],
-      });
-
-      const result = await getBotTypeByPostId(99, clients);
+      const result = getBotTypeByUsername('unknownuser', typeMap, clients);
 
       expect(result).toBeNull();
     });
 
-    it('should handle errors gracefully', async () => {
-      const clients = new Map([['stock', mockClient] as [openaiService.BotType, KimitterClient]]);
+    it('should return null when client is not initialized', () => {
+      const typeMap = new Map<string, openaiService.BotType>([['stockbot', 'stock']]);
+      const clients = new Map<openaiService.BotType, KimitterClient>();
 
-      mockClient.getMyPosts.mockRejectedValue(new Error('API error'));
-
-      const result = await getBotTypeByPostId(1, clients);
+      const result = getBotTypeByUsername('stockbot', typeMap, clients);
 
       expect(result).toBeNull();
     });
@@ -73,6 +64,7 @@ describe('commentReplyHandler', () => {
         username: 'testuser',
         role: 'USER',
       },
+      postAuthorUsername: 'stockbot',
       parentCommentId: null,
     };
 
@@ -92,7 +84,7 @@ describe('commentReplyHandler', () => {
     });
 
     it('should log warning when post is not owned by any bot', async () => {
-      const mockGetBotFn = jest.fn().mockResolvedValue(null);
+      const mockGetBotFn = jest.fn().mockReturnValue(null);
 
       await handleCommentWebhook(basePayload, mockGetBotFn);
 
@@ -104,7 +96,7 @@ describe('commentReplyHandler', () => {
         .spyOn(openaiService, 'generateCommentReply')
         .mockResolvedValue('This is an AI-generated reply');
 
-      const mockGetBotFn = jest.fn().mockResolvedValue({
+      const mockGetBotFn = jest.fn().mockReturnValue({
         botType: 'stock',
         client: mockClient,
       });
@@ -137,7 +129,7 @@ describe('commentReplyHandler', () => {
         .spyOn(openaiService, 'generateCommentReply')
         .mockResolvedValue('This is an AI-generated reply to a reply');
 
-      const mockGetBotFn = jest.fn().mockResolvedValue({
+      const mockGetBotFn = jest.fn().mockReturnValue({
         botType: 'news',
         client: mockClient,
       });
@@ -168,7 +160,7 @@ describe('commentReplyHandler', () => {
         .spyOn(openaiService, 'generateCommentReply')
         .mockResolvedValue(null);
 
-      const mockGetBotFn = jest.fn().mockResolvedValue({
+      const mockGetBotFn = jest.fn().mockReturnValue({
         botType: 'news',
         client: mockClient,
       });
@@ -185,7 +177,7 @@ describe('commentReplyHandler', () => {
     });
 
     it('should not throw errors when webhook processing fails', async () => {
-      const mockGetBotFn = jest.fn().mockRejectedValue(new Error('Unexpected error'));
+      const mockGetBotFn = jest.fn().mockImplementation(() => { throw new Error('Unexpected error'); });
 
       await expect(handleCommentWebhook(basePayload, mockGetBotFn)).resolves.not.toThrow();
     });
