@@ -104,7 +104,7 @@ describe('BotScheduler', () => {
       );
 
       expect(mockSchedule).toHaveBeenCalledWith(
-        '2 8 * * 1',
+        '2 8 * * 6',
         expect.any(Function),
         { timezone: 'Asia/Seoul' },
       );
@@ -114,7 +114,7 @@ describe('BotScheduler', () => {
       expect(tasks[0].name).toBe('news-bot');
       expect(tasks[0].cronExpression).toBe('0 8 * * *');
       expect(tasks[1].name).toBe('stock-bot');
-      expect(tasks[1].cronExpression).toBe('2 8 * * 1');
+      expect(tasks[1].cronExpression).toBe('2 8 * * 6');
     });
 
     it('should not register jobs when BOT_ENABLED is false', () => {

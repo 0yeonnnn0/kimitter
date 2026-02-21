@@ -65,7 +65,7 @@ export class BotScheduler {
     );
 
     const stockTask = cron.schedule(
-      '2 8 * * 1',
+      '2 8 * * 6',
       async () => {
         logger.info('Running stock bot...');
         await stockBot.generatePost();
@@ -81,7 +81,7 @@ export class BotScheduler {
 
     this.tasks.push({
       name: 'stock-bot',
-      cronExpression: '2 8 * * 1',
+      cronExpression: '2 8 * * 6',
       task: stockTask,
     });
 

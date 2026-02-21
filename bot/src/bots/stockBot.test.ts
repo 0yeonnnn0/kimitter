@@ -53,19 +53,9 @@ describe('StockBot', () => {
         },
       ];
 
-      const mockStockDetail = {
-        ticker: '005930',
-        name: '삼성전자',
-        currentPrice: 70000,
-        changeRate: 2.5,
-        changeAmount: 1700,
-        volume: 10000000,
-      };
-
-      const mockContent = '삼성전자가 오늘 급등했습니다!';
+      const mockContent = '📊 오늘의 거래량 TOP\n1. 삼성전자 | ₩70,000 | ▲ 2.5%';
 
       mockStockService.getTrendingStocks.mockResolvedValue(mockTrendingStocks);
-      mockStockService.getStockPrice.mockResolvedValue(mockStockDetail);
       (generatePostContent as jest.Mock).mockResolvedValue(mockContent);
       mockClient.getMyPosts = jest.fn().mockResolvedValue({ posts: [] });
       mockClient.createPost = jest.fn().mockResolvedValue({});
@@ -73,7 +63,6 @@ describe('StockBot', () => {
       await stockBot.generatePost();
 
       expect(mockStockService.getTrendingStocks).toHaveBeenCalledWith(5);
-      expect(mockStockService.getStockPrice).toHaveBeenCalledWith('005930');
       expect(generatePostContent).toHaveBeenCalledWith(
         'stock',
         expect.stringContaining('삼성전자'),
@@ -81,7 +70,6 @@ describe('StockBot', () => {
       expect(mockClient.createPost).toHaveBeenCalledWith(mockContent, [
         '주식',
         '경제',
-        '삼성전자',
       ]);
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining('Successfully posted stock update'),
@@ -100,27 +88,7 @@ describe('StockBot', () => {
       expect(mockClient.createPost).not.toHaveBeenCalled();
     });
 
-    it('should log warning and not create post when stock detail is null', async () => {
-      const mockTrendingStocks = [
-        {
-          ticker: '005930',
-          name: '삼성전자',
-          currentPrice: 70000,
-          changeRate: 2.5,
-          volume: 10000000,
-          rank: 1,
-        },
-      ];
 
-      mockStockService.getTrendingStocks.mockResolvedValue(mockTrendingStocks);
-      mockStockService.getStockPrice.mockResolvedValue(null);
-      mockClient.createPost = jest.fn();
-
-      await stockBot.generatePost();
-
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Failed to get stock price'));
-      expect(mockClient.createPost).not.toHaveBeenCalled();
-    });
   });
 
   describe('generatePost - AI returns null', () => {
@@ -136,17 +104,7 @@ describe('StockBot', () => {
         },
       ];
 
-      const mockStockDetail = {
-        ticker: '005930',
-        name: '삼성전자',
-        currentPrice: 70000,
-        changeRate: 2.5,
-        changeAmount: 1700,
-        volume: 10000000,
-      };
-
       mockStockService.getTrendingStocks.mockResolvedValue(mockTrendingStocks);
-      mockStockService.getStockPrice.mockResolvedValue(mockStockDetail);
       (generatePostContent as jest.Mock).mockResolvedValue(null);
       mockClient.createPost = jest.fn();
 
@@ -158,7 +116,7 @@ describe('StockBot', () => {
   });
 
   describe('generatePost - duplicate check', () => {
-    it('should skip posting if already posted about same stock today', async () => {
+    it('should skip posting if already posted today', async () => {
       const mockTrendingStocks = [
         {
           ticker: '005930',
@@ -170,30 +128,20 @@ describe('StockBot', () => {
         },
       ];
 
-      const mockStockDetail = {
-        ticker: '005930',
-        name: '삼성전자',
-        currentPrice: 70000,
-        changeRate: 2.5,
-        changeAmount: 1700,
-        volume: 10000000,
-      };
-
-      const mockContent = '삼성전자가 오늘 급등했습니다!';
+      const mockContent = '📊 오늘의 거래량 TOP';
 
       const today = new Date();
       const mockPosts = {
         posts: [
           {
             id: 1,
-            content: '삼성전자가 어제도 좋았어요',
+            content: '이전 게시물',
             createdAt: today.toISOString(),
           },
         ],
       };
 
       mockStockService.getTrendingStocks.mockResolvedValue(mockTrendingStocks);
-      mockStockService.getStockPrice.mockResolvedValue(mockStockDetail);
       (generatePostContent as jest.Mock).mockResolvedValue(mockContent);
       mockClient.getMyPosts = jest.fn().mockResolvedValue(mockPosts);
       mockClient.createPost = jest.fn();
@@ -201,7 +149,7 @@ describe('StockBot', () => {
       await stockBot.generatePost();
 
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Already posted about 삼성전자 today'),
+        'Already posted stock update today, skipping',
       );
       expect(mockClient.createPost).not.toHaveBeenCalled();
     });

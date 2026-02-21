@@ -35,19 +35,12 @@ export class StockBot implements BaseBot {
         return;
       }
 
-      const topStock = trendingStocks[0];
-      const stockDetail = await stockService.getStockPrice(topStock.ticker);
-
-      if (!stockDetail) {
-        logger.warn(`Failed to get stock price for ${topStock.ticker}`);
-        return;
-      }
-
-      const rawData = `종목명: ${stockDetail.name}
-현재가: ₩${stockDetail.currentPrice.toLocaleString()}
-전일대비: ${stockDetail.changeRate > 0 ? '+' : ''}${stockDetail.changeRate}%
-거래량: ${stockDetail.volume.toLocaleString()}
-거래량 순위: ${topStock.rank}`;
+      const rawData = trendingStocks
+        .map((stock) => {
+          const sign = stock.changeRate > 0 ? '▲' : stock.changeRate < 0 ? '▼' : '-';
+          return `${stock.rank}. ${stock.name} | ₩${stock.currentPrice.toLocaleString()} | ${sign} ${Math.abs(stock.changeRate)}% | 거래량 ${stock.volume.toLocaleString()}`;
+        })
+        .join('\n');
 
       const content = await generatePostContent('stock', rawData);
 
@@ -56,20 +49,20 @@ export class StockBot implements BaseBot {
         return;
       }
 
-      const isDuplicate = await this.hasPostedAboutStockToday(stockDetail.name);
+      const isDuplicate = await this.hasPostedToday();
       if (isDuplicate) {
-        logger.info(`Already posted about ${stockDetail.name} today, skipping`);
+        logger.info('Already posted stock update today, skipping');
         return;
       }
 
-      await this.client.createPost(content, ['주식', '경제', stockDetail.name]);
-      logger.info(`Successfully posted stock update for ${stockDetail.name}`);
+      await this.client.createPost(content, ['주식', '경제']);
+      logger.info('Successfully posted stock update');
     } catch (error) {
       logger.error('Error generating stock post:', error);
     }
   }
 
-  private async hasPostedAboutStockToday(stockName: string): Promise<boolean> {
+  private async hasPostedToday(): Promise<boolean> {
     try {
       const response = await this.client.getMyPosts(1, 5);
       const postsData = response as PostsResponse;
@@ -89,7 +82,7 @@ export class StockBot implements BaseBot {
           postKstTime.getDate(),
         );
 
-        if (postDateKST.getTime() === todayKST.getTime() && post.content.includes(stockName)) {
+        if (postDateKST.getTime() === todayKST.getTime()) {
           return true;
         }
       }

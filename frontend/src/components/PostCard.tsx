@@ -43,6 +43,7 @@ function formatDate(dateStr: string): string {
 export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCardProps) {
   const router = useRouter();
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentUserRole = useAuthStore((s) => s.user?.role);
   const openAction = usePostActionStore((s) => s.open);
 
   const handleLike = () => {
@@ -61,7 +62,7 @@ export default function PostCard({ post, onLikeToggle, isLiked = false }: PostCa
     openAction({
       post,
       isLiked,
-      isOwner: currentUserId === post.user.id,
+      isOwner: currentUserId === post.user.id || currentUserRole === 'ADMIN',
       onLikeToggle: handleLike,
     });
   };

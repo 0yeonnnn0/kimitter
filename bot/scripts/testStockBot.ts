@@ -86,23 +86,14 @@ async function stepKis(): Promise<{
     );
   }
 
-  const topStock = trending[0];
-  console.log(`\n  → 1위 종목 상세 조회: ${topStock.name} (${topStock.ticker})`);
-  const detail = await stockService.getStockPrice(topStock.ticker);
+  const rawData = trending
+    .map((stock) => {
+      const sign = stock.changeRate > 0 ? '▲' : stock.changeRate < 0 ? '▼' : '-';
+      return `${stock.rank}. ${stock.name} | ₩${stock.currentPrice.toLocaleString()} | ${sign} ${Math.abs(stock.changeRate)}% | 거래량 ${stock.volume.toLocaleString()}`;
+    })
+    .join('\n');
 
-  if (!detail) {
-    console.log('  ⚠️  종목 상세 조회 실패');
-    return null;
-  }
-
-  const rawData = `종목명: ${detail.name}
-현재가: ₩${detail.currentPrice.toLocaleString()}
-전일대비: ${detail.changeRate > 0 ? '+' : ''}${detail.changeRate}%
-거래량: ${detail.volume.toLocaleString()}
-거래량 순위: ${topStock.rank}`;
-
-  console.log('  ✅ 종목 상세 조회 성공');
-  return { name: detail.name, rawData };
+  return { name: 'top5', rawData };
 }
 
 async function stepGenerate(rawData: string): Promise<string | null> {
@@ -132,11 +123,11 @@ async function stepGenerate(rawData: string): Promise<string | null> {
   return content;
 }
 
-async function stepPost(client: KimitterClient, content: string, stockName: string): Promise<void> {
+async function stepPost(client: KimitterClient, content: string): Promise<void> {
   console.log('\n📌 Step 4: Kimitter에 게시');
   console.log(DIVIDER);
 
-  const tags = ['주식', '경제', stockName];
+  const tags = ['주식', '경제'];
   console.log(`  Tags : ${tags.join(', ')}`);
   console.log('  → 게시 중...');
 
@@ -185,7 +176,7 @@ async function main(): Promise<void> {
     }
 
     // Step 4: Post
-    await stepPost(client, content, stockResult.name);
+    await stepPost(client, content);
     console.log('\n🏁 전체 플로우 완료!');
   } catch (error) {
     console.error('\n❌ 에러 발생:', error);
