@@ -1,4 +1,4 @@
-# 101 — 주식봇 날짜 추가 + 봇 댓글 응답 미작동 진단
+# 101 — 주식봇 날짜 추가 + 봇 댓글 응답 수정
 
 ## 변경 사항
 
@@ -13,29 +13,24 @@
 
 **커밋**: `8f686f0` feat(bot): 주식봇 rawData에 전날 날짜 추가 — 프롬프트에서 정확한 날짜 사용
 
-### 2. 봇 댓글 자동 응답 미작동 진단
+### 2. 봇 댓글 자동 응답 수정
 
 **증상**: 봇 게시물에 댓글을 달아도 봇이 응답하지 않음
 
-**원인**: 백엔드 `.env`에 `BOT_WEBHOOK_URL` 환경변수가 설정되어 있지 않음
+**원인 1 (로컬)**: 백엔드 `.env`에 `BOT_WEBHOOK_URL` 환경변수 미설정
+- `webhookService`에서 URL이 빈 문자열이면 `'No webhook URL configured, skipping'`으로 스킵
+- `backend/.env`에 `BOT_WEBHOOK_URL=http://localhost:4000/webhook` 추가
 
-**흐름 분석:**
-```
-댓글 생성 → commentService.createComment()
-  → sendBotWebhook() 호출
-  → webhookService: config.botWebhookUrl === '' (빈 문자열)
-  → 'No webhook URL configured, skipping' 로그 후 리턴
-  → webhook이 아예 전송되지 않음
-  → 봇이 댓글을 인지하지 못함
-```
+**원인 2 (코드 버그)**: `bot/src/index.ts`에서 `initializeBotClients()` 호출 누락
+- `scheduler.initialize()`는 스케줄러 전용 클라이언트를 생성
+- `commentReplyHandler.ts`의 `botClients` Map은 별도로 존재하는데, `initializeBotClients()`를 아무도 호출하지 않아 항상 빈 Map
+- webhook 수신 → `getBotTypeByPostId()` → 빈 Map 순회 → `null` 반환 → `"Post X not owned by any bot, skipping reply"`
 
 **수정:**
-- `backend/.env`에 `BOT_WEBHOOK_URL=http://localhost:4000/webhook` 추가 (로컬 개발용)
-- 프로덕션(`docker-compose.prod.yml`)에는 이미 `BOT_WEBHOOK_URL: http://kimitter-bot:4000/webhook` 설정 있음
+- `bot/src/index.ts`에 `import { initializeBotClients }` + `await initializeBotClients()` 추가
+- `backend/.env`에 `BOT_WEBHOOK_URL=http://localhost:4000/webhook` 추가
 
-**NAS에서 확인 필요:**
-- 실제 사용 중인 `docker-compose.yml`에 `BOT_WEBHOOK_URL: http://kimitter-bot:4000/webhook`이 backend 서비스의 environment에 포함되어 있는지 확인
-- 포함되어 있지 않다면 추가 후 컨테이너 재시작 필요
+**커밋**: `9941317` fix(bot): webhook 댓글 응답 수정 — initializeBotClients() 호출 누락
 
 ## 테스트
 
