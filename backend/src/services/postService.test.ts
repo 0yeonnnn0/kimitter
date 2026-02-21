@@ -20,7 +20,7 @@ const basePost = {
 describe('getPostById', () => {
   it('throws NotFoundError when post does not exist', async () => {
     db.post.findFirst.mockResolvedValue(null);
-    await expect(postService.getPostById(999)).rejects.toMatchObject({
+    await expect(postService.getPostById(999, 1)).rejects.toMatchObject({
       message: 'Post not found',
       statusCode: 404,
     });
@@ -28,8 +28,9 @@ describe('getPostById', () => {
 
   it('returns post when found', async () => {
     db.post.findFirst.mockResolvedValue(basePost);
-    const result = await postService.getPostById(1);
-    expect(result).toEqual(basePost);
+    db.like.findMany.mockResolvedValue([]);
+    const result = await postService.getPostById(1, 1);
+    expect(result).toEqual({ ...basePost, isLiked: false });
     expect(db.post.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 1, deletedAt: null } }),
     );
@@ -40,8 +41,9 @@ describe('getPosts', () => {
   it('returns paginated posts with totalPages', async () => {
     db.post.findMany.mockResolvedValue([basePost]);
     db.post.count.mockResolvedValue(25);
+    db.like.findMany.mockResolvedValue([]);
 
-    const result = await postService.getPosts(1, 10);
+    const result = await postService.getPosts(1, 10, 1);
     expect(result.posts).toHaveLength(1);
     expect(result.total).toBe(25);
     expect(result.totalPages).toBe(3);
