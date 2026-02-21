@@ -14,7 +14,9 @@
 | **인증** | JWT (Access + Refresh Token), bcryptjs |
 | **파일 저장** | NAS 로컬 파일시스템 (`/volume1/docker/kimitter/uploads/`) |
 | **푸시 알림** | Expo Push Notification (expo-notifications, expo-server-sdk) |
+| **봇 서비스** | Node.js, TypeScript, OpenAI (gpt-4o-mini), KIS API, Naver News API |
 | **컨테이너** | Docker, Docker Compose |
+| **CI/CD** | GitHub Actions → Docker Hub 자동 빌드 & push |
 | **빌드/배포** | EAS Build (expo-dev-client), APK/iOS 시뮬레이터 |
 | **외부 접속** | Cloudflare Tunnel (Zero Trust) |
 | **도메인** | `kimitter.yeonnnn.xyz` |
@@ -96,9 +98,19 @@
 ### 관리자 기능
 
 - 유저 초대 (이메일 기반 초대 코드 생성, 중복 시 기존 코드 표시)
-- 모든 게시물/댓글 삭제 권한
+- 모든 유저의 게시물/댓글 삭제 권한 (본인 글이 아니어도 삭제 가능)
 - 유저 활성/비활성 처리
 - 프로필 페이지에서 "유저 초대하기" 버튼
+
+### 봇 서비스
+
+백엔드와 완전히 분리된 독립 서비스로, HTTP API를 통해 Kimitter에 자동 게시물과 댓글 응답을 제공합니다.
+
+- **주식봇** (stockbot): 토요일 08:02 KST에 거래량 TOP 5 자동 게시 (한국투자증권 KIS API)
+- **뉴스봇** (newsbot): 매일 09:00 KST에 주요 뉴스 요약 자동 게시 (네이버 뉴스 API + OpenAI)
+- **댓글 자동 응답**: 봇 게시물에 유저가 댓글을 달면 OpenAI로 자동 답글 생성
+- **BOT→BOT 무한 루프 방지**: 봇이 다른 봇의 댓글에는 응답하지 않음
+- **Webhook 기반**: 백엔드가 댓글 생성 시 봇 서비스에 webhook 전송 → 봇이 답글 생성
 
 ---
 
@@ -175,6 +187,27 @@ example/
 │   ├── eas.json                    # EAS Build 프로필 설정
 │   └── .env
 │
+├── bot/                            # 봇 서비스 (독립 실행)
+│   ├── src/
+│   │   ├── api/                    # Kimitter API 클라이언트
+│   │   ├── bots/                   # 봇 구현체 (stockBot, newsBot)
+│   │   ├── config/                 # 환경변수, 프롬프트 설정
+│   │   ├── services/               # OpenAI, KIS, Naver API 서비스
+│   │   ├── webhook/                # 댓글 webhook 수신 서버 (포트 4000)
+│   │   ├── utils/                  # 로거, 재시도 로직
+│   │   ├── scheduler.ts            # cron 스케줄러
+│   │   └── index.ts                # 엔트리포인트
+│   ├── scripts/
+│   │   └── testStockBot.ts         # 주식봇 수동 테스트 CLI
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── .env
+│
+├── .github/
+│   └── workflows/
+│       ├── deploy-backend.yml      # backend/** 변경 시 Docker Hub 자동 push
+│       └── deploy-bot.yml          # bot/** 변경 시 Docker Hub 자동 push
+│
 └── log/                            # 변경 이력 로그 (MD 파일)
 ```
 
@@ -228,25 +261,55 @@ npx expo start --dev-client
 | `preview` | 내부 배포용 APK | Android |
 | `production` | 스토어 배포 | iOS / Android |
 
+### CI/CD (GitHub Actions)
+
+main 브랜치에 push하면 GitHub Actions가 자동으로 Docker 이미지를 빌드하여 Docker Hub에 push합니다.
+
+| 워크플로우 | 트리거 경로 | Docker 이미지 |
+|-----------|------------|--------------|
+| `deploy-backend.yml` | `backend/**` | `dusehd1/kimitter-backend:latest` |
+| `deploy-bot.yml` | `bot/**` | `dusehd1/kimitter-bot:latest` |
+
+**필요한 GitHub Secrets:**
+
+| Secret | 값 |
+|--------|------|
+| `DOCKER_USERNAME` | Docker Hub 사용자명 |
+| `DOCKER_PASSWORD` | Docker Hub 비밀번호 또는 Access Token |
+
 ### NAS 배포 (Synology)
 
-Synology NAS의 Container Manager를 사용하여 프로덕션 배포. Docker Hub에서 이미지를 pull하여 실행.
+Synology NAS (DS225+)의 Container Manager를 사용하여 프로덕션 배포. Docker Hub에서 이미지를 pull하여 실행.
 
 **배포 아키텍처:**
 
 ```
 [Expo 앱] → https://kimitter.yeonnnn.xyz → [Cloudflare Tunnel] → [Express :3000] → [PostgreSQL :5432]
+                                                                        ↕ webhook
+                                                                  [Bot Service :4000] → [OpenAI / KIS / Naver API]
 ```
+
+**Docker Hub 이미지:**
+
+| 이미지 | 설명 |
+|--------|------|
+| `dusehd1/kimitter-backend:latest` | Express API 서버 |
+| `dusehd1/kimitter-bot:latest` | 봇 서비스 |
+| `dusehd1/kimitter-expo-dev:latest` | Expo 개발 서버 |
 
 **배포 순서:**
 
 ```bash
-# 1. Mac에서 이미지 빌드 & Docker Hub Push
-cd backend
-docker buildx build --platform linux/amd64 --no-cache \
-  -t dusehd1/kimitter-backend:latest --push .
+# 자동 배포 (권장)
+# main 브랜치에 push → GitHub Actions가 Docker 이미지 자동 빌드 & Docker Hub push
+# NAS Task Scheduler가 주기적으로 pull & restart
 
-# 2. NAS Container Manager에서 프로젝트 "빌드" 클릭 (이미지 pull + 재시작)
+# 수동 배포
+cd backend
+docker buildx build --platform linux/amd64 -t dusehd1/kimitter-backend:latest --push .
+
+cd bot
+docker buildx build --platform linux/amd64 -t dusehd1/kimitter-bot:latest --push .
 ```
 
 **NAS 파일 구조:**
@@ -263,7 +326,8 @@ docker buildx build --platform linux/amd64 --no-cache \
 
 **프로덕션 docker-compose 주요 설정:**
 
-- 이미지: `dusehd1/kimitter-backend:latest` (Docker Hub)
+- 이미지: `dusehd1/kimitter-backend:latest`, `dusehd1/kimitter-bot:latest` (Docker Hub)
+- 컨테이너: `kimitter-db`, `kimitter-backend`, `kimitter-bot`, `kimitter-expo-dev`, `cloudflared`
 - 네트워크: `kimitter-net` (컨테이너 간 통신용 명시적 bridge 네트워크)
 - 볼륨: NAS 로컬 바인드 마운트 (`/volume1/docker/kimitter/`)
 - 자동 재시작: `restart: unless-stopped`
@@ -304,7 +368,7 @@ gunzip -c backups/db_20260212_020000.sql.gz | \
 
 | 모델 | 설명 |
 |------|------|
-| `User` | 사용자 (username, nickname, bio, profileImageUrl, role: USER/ADMIN) |
+| `User` | 사용자 (username, nickname, bio, profileImageUrl, role: USER/ADMIN/BOT) |
 | `InvitationCode` | 초대 코드 (1회성, 만료일 설정 가능) |
 | `RefreshToken` | JWT 리프레시 토큰 저장 |
 | `Post` | 게시물 (소프트 삭제) |
@@ -369,6 +433,24 @@ JWT_REFRESH_EXPIRATION=7d
 UPLOAD_DIR=./uploads
 MAX_FILE_SIZE=104857600
 EXPO_ACCESS_TOKEN=your-expo-access-token
+BOT_WEBHOOK_URL=http://localhost:4000/webhook
+```
+
+**봇** (`bot/.env`):
+```env
+KIMITTER_API_URL=http://localhost:3000/api
+BOT_STOCK_USERNAME=stockbot
+BOT_STOCK_PASSWORD=stockbot1234
+BOT_NEWS_USERNAME=newsbot
+BOT_NEWS_PASSWORD=newsbot1234
+BOT_ENABLED=true
+BOT_WEBHOOK_PORT=4000
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4o-mini
+NAVER_CLIENT_ID=your-naver-client-id
+NAVER_CLIENT_SECRET=your-naver-client-secret
+KIS_APP_KEY=your-kis-app-key
+KIS_APP_SECRET=your-kis-app-secret
 ```
 
 **프론트엔드** (`frontend/.env`):
@@ -429,6 +511,8 @@ npx expo start --dev-client
 |---------|--------|---------|--------|------|
 | **관리자** | `admin` | `admin1234` | 관리자 | ADMIN |
 | **일반 유저** | `testuser` | `test1234` | 테스트유저 | USER |
+| **주식봇** | `stockbot` | `stockbot1234` | 주식봇 | BOT |
+| **뉴스봇** | `newsbot` | `newsbot1234` | 뉴스봇 | BOT |
 
 ### 추가 계정 만들기
 
@@ -457,7 +541,7 @@ npm run test:watch                           # Watch 모드
 npm test -- --coverage                       # 커버리지
 ```
 
-**테스트 현황 (58개, 전체 통과):**
+**백엔드 테스트 현황 (11 suites, 64 tests, 전체 통과):**
 
 | 테스트 파일 | 케이스 수 | 주요 커버 |
 |------------|----------|---------|
@@ -467,10 +551,36 @@ npm test -- --coverage                       # 커버리지
 | `services/authService.test.ts` | 10 | 회원가입, 로그인, 로그아웃, 초대코드 |
 | `services/postService.test.ts` | 10 | 게시물 CRUD, 페이지네이션, 권한 |
 | `services/commentService.test.ts` | 9 | 댓글/답글, 수정/삭제 권한 |
+| `services/webhookService.test.ts` | 3 | 봇 webhook 전송, URL 미설정 스킵 |
 | `services/likeService.test.ts` | 4 | 좋아요 토글 |
 | `services/userService.test.ts` | 4 | 유저 조회/수정 |
 | `services/notificationService.test.ts` | 5 | 알림 조회, 읽음 처리 |
 | `services/tagService.test.ts` | 2 | 태그 조회 |
+
+### 봇 서비스 (Jest + ts-jest)
+
+```bash
+cd bot
+
+npm test                                    # 전체 테스트
+npm test -- src/bots/stockBot.test.ts        # 단일 파일
+npx tsc --noEmit                            # 타입 검사
+npx ts-node scripts/testStockBot.ts         # 주식봇 수동 테스트 (KIS API 실제 호출)
+```
+
+**봇 테스트 현황 (9 suites, 75 tests, 전체 통과):**
+
+| 테스트 파일 | 케이스 수 | 주요 커버 |
+|------------|----------|---------|
+| `api/kimitterClient.test.ts` | 11 | 로그인, 토큰 갱신, 게시물/댓글 생성 |
+| `bots/stockBot.test.ts` | 6 | 주식 데이터 수집, 게시물 생성, 중복 체크 |
+| `bots/newsBot.test.ts` | 6 | 뉴스 수집, 게시물 생성, 중복 체크 |
+| `services/openaiService.test.ts` | 7 | 게시물/댓글 컨텐츠 생성, 토큰 사용량 |
+| `services/kisStockService.test.ts` | 12 | KIS 인증, 주가 조회, 거래량 순위 |
+| `services/naverNewsService.test.ts` | 14 | 뉴스 검색, HTML 태그 제거, 필터링 |
+| `scheduler.test.ts` | 5 | cron 작업 등록, 시작/중지 |
+| `webhook/commentReplyHandler.test.ts` | 9 | 봇 매칭, 댓글 생성, BOT 루프 방지 |
+| `webhook/webhookServer.test.ts` | 5 | webhook 엔드포인트, 페이로드 검증 |
 
 ### 프론트엔드
 
@@ -516,6 +626,18 @@ eas build --profile development-device --platform android # Android 실기기용
 eas build --profile preview --platform android            # 배포용 APK
 ```
 
+### 봇 서비스
+
+```bash
+cd bot
+npm run dev                                  # 개발 서버 (nodemon + ts-node)
+npm run build                                # TypeScript 컴파일
+npm start                                    # 프로덕션 서버
+npm test                                     # Jest 테스트
+npx tsc --noEmit                             # 타입 검사
+npx ts-node scripts/testStockBot.ts          # 주식봇 수동 테스트 (KIS API 실제 호출)
+```
+
 ---
 
 ## 주요 개발 결정사항
@@ -536,6 +658,9 @@ eas build --profile preview --platform android            # 배포용 APK
 | node:20-slim (Debian) | Alpine에서 Prisma 엔진 OpenSSL 호환성 문제 해결 |
 | Cloudflare Tunnel | 이중 NAT 환경에서 포트포워딩 없이 외부 접속, 자동 HTTPS |
 | 명시적 Docker 네트워크 | Synology Container Manager에서 컨테이너 간 DNS 통신 보장 |
+| 봇 서비스 분리 | 백엔드와 독립 실행, HTTP API 경유 — 장애 격리, 독립 배포 |
+| OpenAI gpt-4o-mini | 비용 효율적 모델, 댓글 자동 응답 + 게시물 생성 |
+| GitHub Actions CI/CD | push 시 Docker 이미지 자동 빌드, 수동 배포 불필요 |
 
 ---
 
@@ -553,6 +678,10 @@ eas build --profile preview --platform android            # 배포용 APK
 - [x] NAS 배포 설정 (Synology Container Manager + Cloudflare Tunnel)
 - [x] 외부 도메인 연결 (kimitter.yeonnnn.xyz)
 - [x] DB 자동 백업 스크립트
+- [x] 봇 서비스 구축 (주식봇 + 뉴스봇)
+- [x] 봇 댓글 자동 응답 (webhook)
+- [x] GitHub Actions CI/CD (백엔드 + 봇 자동 빌드)
+- [x] 관리자 전체 게시물 삭제 기능
 - [ ] Admin UI 화면 구현 (웹 또는 앱 내)
 - [ ] 댓글/답글에 좋아요 UI 추가
 - [ ] 동영상 재생 UI 개선

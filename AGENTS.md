@@ -13,7 +13,9 @@
 - **Backend**: Node.js + Express.js (JWT auth, Multer uploads, Joi validation)
 - **Database**: PostgreSQL 14+ (Prisma ORM)
 - **Package Manager**: npm
-- **Monorepo**: Yes — `frontend/` (Expo app) and `backend/` (Express API)
+- **Bot**: Node.js + TypeScript (OpenAI, KIS API, Naver News API)
+- **CI/CD**: GitHub Actions → Docker Hub auto build & push
+- **Monorepo**: Yes — `frontend/` (Expo app), `backend/` (Express API), `bot/` (Bot service)
 
 ---
 
@@ -51,12 +53,27 @@
 | EAS build (iOS) | `eas build --platform ios` |
 | EAS build (Android) | `eas build --platform android` |
 
+### Bot (`bot/`)
+
+| Action | Command |
+|---|---|
+| Install dependencies | `npm install` |
+| Dev server | `npm run dev` (nodemon + ts-node) |
+| Build | `npm run build` (tsc) |
+| Start production | `npm start` |
+| Type check | `npx tsc --noEmit` |
+| Run all tests | `npm test` |
+| Run single test file | `npm test -- path/to/file.test.ts` |
+| Stock bot manual test | `npx ts-node scripts/testStockBot.ts` |
+
 ### Test Notes
 
-- Test framework: Jest (both frontend and backend)
+- Test framework: Jest (all three packages — backend, frontend, bot)
 - Test files: co-located as `*.test.ts` / `*.test.tsx`
 - Naming convention: `describe`/`it` blocks
 - Backend integration tests may require a running PostgreSQL instance
+- Bot tests are fully mocked (no external API calls)
+- Backend: 11 suites, 64 tests / Bot: 9 suites, 75 tests
 
 ---
 
@@ -153,6 +170,23 @@ frontend/
 ├── app.json              # Expo config
 ├── package.json
 └── tsconfig.json
+
+bot/
+├── src/
+│   ├── api/              # KimitterClient (login, createPost, createComment)
+│   ├── bots/             # Bot implementations (stockBot, newsBot, baseBot)
+│   ├── config/           # Environment vars, OpenAI prompts
+│   ├── services/         # OpenAI, KIS stock, Naver news services
+│   ├── webhook/          # Webhook server (port 4000) + comment reply handler
+│   ├── utils/            # Logger, retry logic
+│   ├── scheduler.ts      # Cron scheduler (stock: Sat 08:02, news: daily 09:00)
+│   └── index.ts          # Entry point (scheduler + webhook server)
+├── scripts/
+│   └── testStockBot.ts   # Manual stock bot test CLI
+├── Dockerfile
+├── .env / .env.example
+├── package.json
+└── tsconfig.json
 ```
 
 ---
@@ -194,7 +228,17 @@ frontend/
 
 ```
 NODE_ENV, PORT, DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET,
-JWT_EXPIRATION, UPLOAD_DIR, MAX_FILE_SIZE, EXPO_ACCESS_TOKEN
+JWT_EXPIRATION, UPLOAD_DIR, MAX_FILE_SIZE, EXPO_ACCESS_TOKEN,
+BOT_WEBHOOK_URL
+```
+
+### Required env vars (bot `.env`)
+
+```
+KIMITTER_API_URL, BOT_STOCK_USERNAME, BOT_STOCK_PASSWORD,
+BOT_NEWS_USERNAME, BOT_NEWS_PASSWORD, BOT_ENABLED,
+BOT_WEBHOOK_PORT, OPENAI_API_KEY, OPENAI_MODEL,
+NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, KIS_APP_KEY, KIS_APP_SECRET
 ```
 
 ### Required env vars (frontend `.env`)
