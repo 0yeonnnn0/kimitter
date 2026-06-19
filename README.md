@@ -1,692 +1,604 @@
 # Kimitter
 
-가족 4명만을 위한 폐쇄형 SNS 앱. 초대 코드 기반 가입, 사진/GIF/동영상 공유, 푸시 알림, Threads 스타일 UI를 제공합니다.
+> 가족 4명만을 위한 폐쇄형 SNS. 2주 동안 기획, 모바일 앱, 백엔드, 봇, NAS 배포 자동화까지 혼자 구현한 실사용 프로젝트입니다.
+
+Kimitter는 가족 카톡방에서 사진과 이야기가 금방 묻히는 문제를 해결하기 위해 만든 **가족 전용 SNS 앱**입니다. 초대 코드가 있어야 가입할 수 있고, 게시글·사진·GIF·동영상·댓글·알림·월별 미디어 갤러리·AI 봇 게시물을 지원합니다. UI는 Threads의 2-column 피드를 참고했고, 서비스는 Synology NAS + Docker + Cloudflare Tunnel 위에서 운영됩니다.
+
+- **프로젝트 성격**: 가족용 실서비스 + Luminir 모바일/백엔드 기술 스택 파일럿
+- **개발 기간**: 2026.02.08 ~ 2026.02.21, 약 2주 집중 개발
+- **사용자**: 가족 4명
+- **서비스 도메인**: `kimitter.yeonnnn.xyz`
+- **코드 규모**: TypeScript 112 files / 약 5.4K LOC, 전체 278 files
+- **테스트**: Backend 64 tests + Bot 75 tests = 139 tests
+
+---
+
+## 목차
+
+- [핵심 기능](#핵심-기능)
+- [기술 스택](#기술-스택)
+- [아키텍처](#아키텍처)
+- [프로젝트 구조](#프로젝트-구조)
+- [로컬 실행](#로컬-실행)
+- [환경변수](#환경변수)
+- [테스트와 검증](#테스트와-검증)
+- [배포와 운영](#배포와-운영)
+- [주요 구현 포인트](#주요-구현-포인트)
+- [회고](#회고)
+- [TODO](#todo)
+
+---
+
+## 핵심 기능
+
+### 1. 초대 코드 기반 폐쇄형 SNS
+
+- 관리자만 초대 코드를 생성할 수 있습니다.
+- 초대 코드 없이는 회원가입할 수 없어 가족 전용 공간을 유지합니다.
+- 사용자 역할은 `USER`, `ADMIN`, `BOT`으로 분리했습니다.
+
+### 2. Threads 스타일 홈 피드
+
+- 아바타 열과 콘텐츠 열을 분리한 2-column 레이아웃
+- `FlatList` 기반 무한 스크롤
+- Pull-to-refresh
+- 상단 “새로운 소식이 있나요?” compose prompt
+- 좋아요 낙관적 업데이트
+- 게시물 상세, 댓글, 대댓글 지원
+
+### 3. 미디어 업로드와 갤러리
+
+- 사진, GIF, 동영상 업로드
+- 업로드 전 이미지 자동 압축
+  - 1920px 리사이징
+  - JPEG 70% 압축
+  - HEIC → JPEG 변환
+- 원본 비율을 유지하는 미디어 갤러리
+- 월별 미디어 갤러리로 가족 사진을 다시 보기 쉽게 구성
+
+### 4. 알림과 푸시
+
+- 좋아요, 댓글, 답글, 멘션, 커스텀 알림
+- Expo Push Notification 연동
+- 글 작성 시 “알림 보내기” 모드로 가족 전체에게 브로드캐스트 가능
+- 읽음 처리와 30일 지난 알림 자동 정리
+
+### 5. 검색과 프로필
+
+- 태그 검색 / 유저 검색 모드 전환
+- 프로필 탭: 스레드 / 답글 / 미디어
+- 프로필 편집, 프로필 이미지 확대 보기
+- 유저별 캘린더 색상 관리
+
+### 6. 가족 피드를 채우는 봇 서비스
+
+백엔드와 분리된 독립 봇 서비스가 Kimitter API를 통해 자동 게시물을 작성합니다.
+
+- **뉴스봇**: 매일 09:00 KST, 네이버 뉴스 API + OpenAI 요약 게시
+- **주식봇**: 매주 토요일 08:02 KST, KIS API 기반 거래량 TOP 5 게시
+- **댓글 자동 응답**: 봇 게시물에 가족이 댓글을 달면 OpenAI로 답글 생성
+- **무한 루프 방지**: BOT이 다른 BOT 댓글에는 응답하지 않도록 차단
+- **Webhook 기반**: 백엔드가 댓글 생성 이벤트를 봇 서비스로 전달
 
 ---
 
 ## 기술 스택
 
 | 영역 | 기술 |
-|------|------|
-| **프론트엔드** | React Native, Expo (SDK 54), Expo Router, Zustand, Axios |
-| **백엔드** | Node.js, Express.js, TypeScript |
-| **데이터베이스** | PostgreSQL 14+, Prisma ORM |
-| **인증** | JWT (Access + Refresh Token), bcryptjs |
-| **파일 저장** | NAS 로컬 파일시스템 (`/volume1/docker/kimitter/uploads/`) |
-| **푸시 알림** | Expo Push Notification (expo-notifications, expo-server-sdk) |
-| **봇 서비스** | Node.js, TypeScript, OpenAI (gpt-4o-mini), KIS API, Naver News API |
-| **컨테이너** | Docker, Docker Compose |
-| **CI/CD** | GitHub Actions → Docker Hub 자동 빌드 & push |
-| **빌드/배포** | EAS Build (expo-dev-client), APK/iOS 시뮬레이터 |
-| **외부 접속** | Cloudflare Tunnel (Zero Trust) |
-| **도메인** | `kimitter.yeonnnn.xyz` |
-| **테스트** | Jest + ts-jest |
-| **패키지 매니저** | npm |
+|---|---|
+| Mobile | React Native, Expo SDK 54, Expo Router, expo-dev-client |
+| State | Zustand |
+| API Client | Axios + 401 refresh interceptor |
+| Secure Storage | Expo SecureStore |
+| Backend | Node.js, Express.js, TypeScript |
+| Database | PostgreSQL 15, Prisma ORM |
+| Auth | JWT Access Token + Refresh Token, bcryptjs |
+| Validation | Joi |
+| Upload | Multer, NAS local filesystem |
+| Notification | expo-notifications, expo-server-sdk |
+| Bot | Node.js, TypeScript, OpenAI, KIS API, Naver News API |
+| Infra | Docker, Docker Compose, Synology NAS |
+| External Access | Cloudflare Tunnel |
+| CI/CD | GitHub Actions, Docker Hub |
+| Test | Jest, ts-jest, supertest |
+| Package Manager | npm |
 
 ---
 
-## 주요 기능
+## 아키텍처
 
-### 인증 및 가입
+```text
+[Expo / React Native App]
+        |
+        | HTTPS
+        v
+https://kimitter.yeonnnn.xyz
+        |
+        v
+[Cloudflare Tunnel]
+        |
+        v
+[Express Backend :3000] ───── [PostgreSQL :5432]
+        |
+        | webhook: comment created
+        v
+[Bot Service :4000]
+        |
+        ├── OpenAI: 뉴스 요약 / 댓글 답변 생성
+        ├── Naver News API: 주요 뉴스 수집
+        └── KIS API: 국내 주식 거래량 데이터 수집
+```
 
-- JWT 이중 토큰 인증 (Access 1h + Refresh 7d)
-- 초대 코드 기반 폐쇄형 가입 (관리자가 코드 생성)
-- 이메일 기반 유저 초대 시스템 (6자리 코드 자동 생성)
-- 세션 자동 복원 및 만료 토큰 자동 정리
-- 비밀번호 표시/숨기기 토글 (로그인, 회원가입)
+### 배포 흐름
 
-### 홈 피드
-
-- Threads 스타일 2-column 레이아웃 (아바타 | 콘텐츠)
-- 상단 compose prompt ("새로운 소식이 있나요?") - 탭하면 글 작성 모달 열림
-- FlatList 기반 무한 스크롤 페이지네이션
-- Pull-to-refresh
-
-### 게시물 작성
-
-- 텍스트 + 미디어(사진/GIF/동영상) + 태그 작성
-- 이미지 자동 압축 (1920px 리사이징, JPEG 70%, HEIC->JPEG 자동 변환)
-- BottomSheet 기반 풀스크린 모달
-- 드롭다운 모드 선택: 새 글 쓰기 / 알림 보내기 (브로드캐스트)
-- 드롭다운이 헤더 바로 아래에 인라인 위치
-
-### 게시물 표시
-
-- Threads 스타일 이미지 갤러리 (원본 비율 유지, 가로 스크롤)
-- 단독 이미지는 레이아웃 폭에 맞춰 동적 크기 조정
-- 미디어 스크롤 시 아바타 영역 위로 오버랩 가능
-- 좋아요 토글 (낙관적 업데이트)
-- 댓글 + 대댓글 (답글)
-
-### 게시물 액션 (... 버튼)
-
-- 화면 하단 ActionSheet (PostActionSheet)
-- 좋아요, 댓글 달기 메뉴
-- 본인 글이면 삭제 옵션 추가
-- 화면 레벨 단일 인스턴스로 중복 방지
-
-### 프로필
-
-- Threads 스타일 프로필 레이아웃 (닉네임, @username, bio)
-- 프로필 탭 (스레드 / 답글 / 미디어)
-- 프로필 편집 모달 (닉네임, bio, 프로필 사진 변경)
-- 프로필 이미지 확대 보기 (풀스크린 모달, 위/아래 스와이프로 닫기, 배경 fade 효과)
-- 이미지가 없을 때도 탭하면 기본 아이콘 확대 표시
-- 기본 아바타: Ionicons person 아이콘 (밝은 회색 원형 배경)
-- 타 유저 프로필 페이지 (게시물 피드에서 아바타/닉네임 탭으로 이동)
-
-### 검색
-
-- 태그 검색 + 유저 검색 모드 전환 (필터 버튼)
-- 기본 화면: 월별 미디어 갤러리 그리드 (텍스트 전용 게시물 포함)
-- 캘린더 아이콘으로 월 이동
-
-### 활동 (알림)
-
-- 좋아요 / 댓글 / 답글 / 멘션 / 커스텀 알림 표시
-- 읽음 처리 (읽어도 목록에서 유지)
-- 30일 지난 알림 자동 삭제
-- Pull-to-refresh
-- 프로필 이미지 있는 경우 알림에 이미지 표시
-
-### 푸시 알림
-
-- expo-notifications 연동
-- Expo Push Token 등록/관리
-- 브로드캐스트 알림 전송 기능 (글 작성 모달에서 "알림 보내기" 선택)
-
-### 관리자 기능
-
-- 유저 초대 (이메일 기반 초대 코드 생성, 중복 시 기존 코드 표시)
-- 모든 유저의 게시물/댓글 삭제 권한 (본인 글이 아니어도 삭제 가능)
-- 유저 활성/비활성 처리
-- 프로필 페이지에서 "유저 초대하기" 버튼
-
-### 봇 서비스
-
-백엔드와 완전히 분리된 독립 서비스로, HTTP API를 통해 Kimitter에 자동 게시물과 댓글 응답을 제공합니다.
-
-- **주식봇** (stockbot): 토요일 08:02 KST에 거래량 TOP 5 자동 게시 (한국투자증권 KIS API)
-- **뉴스봇** (newsbot): 매일 09:00 KST에 주요 뉴스 요약 자동 게시 (네이버 뉴스 API + OpenAI)
-- **댓글 자동 응답**: 봇 게시물에 유저가 댓글을 달면 OpenAI로 자동 답글 생성
-- **BOT→BOT 무한 루프 방지**: 봇이 다른 봇의 댓글에는 응답하지 않음
-- **Webhook 기반**: 백엔드가 댓글 생성 시 봇 서비스에 webhook 전송 → 봇이 답글 생성
-
----
-
-## UI/UX 디자인
-
-| 항목 | 설명 |
-|------|------|
-| 컬러 스킴 | 블랙/화이트 기조 (배경 흰색, 텍스트 검정) |
-| 레이아웃 | Threads 스타일 2-column (아바타 열 + 콘텐츠 열) |
-| 하단 탭바 | 아이콘만 표시 (텍스트 라벨 제거), 상단 패딩 8px |
-| 기본 아바타 | Ionicons `person` 아이콘, `#e8e8e8` 배경 |
-| 글 구분선 | 회색 (`#e0e0e0`) 수평선 |
-| 이미지 뷰어 | 풀스크린 검정 배경, 스와이프 dismiss, 배경 fade |
-| 모달 | BottomSheet 기반 슬라이드 업/다운 애니메이션 |
+```text
+코드 수정
+  → git push main
+  → GitHub Actions
+  → Docker Hub 이미지 빌드 & push
+  → NAS Task Scheduler가 새 이미지 감지
+  → docker compose pull & restart
+  → 5~10분 내 프로덕션 반영
+```
 
 ---
 
 ## 프로젝트 구조
 
-```
-example/
-├── backend/                        # Express API 서버
+```text
+kimitter/
+├── backend/                    # Express API 서버
 │   ├── src/
-│   │   ├── config/                 # DB, Multer, JWT, 환경변수 설정
-│   │   ├── controllers/            # 라우트 핸들러 (thin layer)
-│   │   ├── routes/                 # API 라우트 정의
-│   │   ├── middleware/             # auth, errorHandler, validate, admin
-│   │   ├── services/               # 비즈니스 로직
-│   │   ├── types/                  # TypeScript 공유 타입
-│   │   ├── utils/                  # errors, jwt, logger
-│   │   └── test/                   # 테스트 헬퍼
-│   ├── prisma/
-│   │   └── schema.prisma           # DB 스키마 (11개 모델)
-│   ├── scripts/
-│   │   └── backup-db.sh            # PostgreSQL DB 자동 백업 스크립트
-│   ├── Dockerfile                  # Multi-stage 빌드 (node:20-slim)
-│   ├── .dockerignore
-│   ├── docker-compose.yml          # PostgreSQL + Backend 서비스
-│   ├── jest.config.ts
-│   └── .env
-│
-├── frontend/                       # React Native (Expo) 앱
-│   ├── app/
-│   │   ├── _layout.tsx             # 루트 레이아웃 + 인증 게이트
-│   │   ├── (auth)/                 # 로그인, 초대코드, 회원가입
-│   │   ├── (tabs)/                 # 메인 5탭 (홈/검색/작성/활동/프로필)
-│   │   │   ├── index.tsx           # 홈 피드 (compose prompt + PostCard 목록)
-│   │   │   ├── search.tsx          # 검색 (태그/유저 + 월별 갤러리)
-│   │   │   ├── activity.tsx        # 활동 알림
-│   │   │   ├── profile.tsx         # 내 프로필
-│   │   │   └── _layout.tsx         # 탭 레이아웃 + CreatePostModal + PostActionSheet
-│   │   ├── [postId]/               # 게시물 상세 + 댓글
-│   │   └── user/[userId].tsx       # 타 유저 프로필
-│   ├── src/
-│   │   ├── stores/                 # Zustand 상태 관리
-│   │   │   ├── authStore.ts        # 인증 상태 (로그인/로그아웃/토큰)
-│   │   │   ├── feedStore.ts        # 피드 상태 (게시물 목록/좋아요)
-│   │   │   ├── notificationStore.ts # 알림 상태
-│   │   │   ├── postActionStore.ts  # PostActionSheet 상태
-│   │   │   └── createModalStore.ts # 글 작성 모달 open/close 상태
-│   │   ├── services/               # Axios API 호출
-│   │   ├── components/             # 공유 UI 컴포넌트
-│   │   │   ├── PostCard.tsx        # 게시물 카드 (2-column 레이아웃)
-│   │   │   ├── MediaGallery.tsx    # 이미지/동영상 갤러리
-│   │   │   ├── PostActionSheet.tsx # 게시물 액션 시트 (좋아요/댓글/삭제)
-│   │   │   ├── CreatePostModal.tsx # 글 작성 모달 (드롭다운 모드)
-│   │   │   ├── EditProfileModal.tsx # 프로필 편집 모달
-│   │   │   ├── ImageViewerModal.tsx # 프로필 이미지 확대 보기
-│   │   │   ├── ProfileTabs.tsx     # 프로필 탭 (스레드/답글/미디어)
-│   │   │   ├── BottomSheet.tsx     # 공용 바텀시트 컴포넌트
-│   │   │   └── InviteModal.tsx     # 유저 초대 모달
-│   │   ├── types/                  # 공유 타입
-│   │   └── config/                 # 상수, API URL
-│   ├── eas.json                    # EAS Build 프로필 설정
-│   └── .env
-│
-├── bot/                            # 봇 서비스 (독립 실행)
-│   ├── src/
-│   │   ├── api/                    # Kimitter API 클라이언트
-│   │   ├── bots/                   # 봇 구현체 (stockBot, newsBot)
-│   │   ├── config/                 # 환경변수, 프롬프트 설정
-│   │   ├── services/               # OpenAI, KIS, Naver API 서비스
-│   │   ├── webhook/                # 댓글 webhook 수신 서버 (포트 4000)
-│   │   ├── utils/                  # 로거, 재시도 로직
-│   │   ├── scheduler.ts            # cron 스케줄러
-│   │   └── index.ts                # 엔트리포인트
-│   ├── scripts/
-│   │   └── testStockBot.ts         # 주식봇 수동 테스트 CLI
+│   │   ├── config/             # DB, Multer, JWT, env 설정
+│   │   ├── controllers/        # 요청/응답 처리 계층
+│   │   ├── middleware/         # auth, admin, validation, errorHandler
+│   │   ├── routes/             # REST API 라우트
+│   │   ├── services/           # 비즈니스 로직
+│   │   ├── types/              # TypeScript 타입
+│   │   └── utils/              # errors, jwt, logger 등
+│   ├── prisma/schema.prisma    # DB 스키마
+│   ├── scripts/backup-db.sh    # PostgreSQL 백업 스크립트
 │   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── .env
+│   └── docker-compose.yml
 │
-├── .github/
-│   └── workflows/
-│       ├── deploy-backend.yml      # backend/** 변경 시 Docker Hub 자동 push
-│       └── deploy-bot.yml          # bot/** 변경 시 Docker Hub 자동 push
+├── frontend/                   # Expo / React Native 앱
+│   ├── app/                    # Expo Router 파일 기반 라우팅
+│   │   ├── (auth)/             # 로그인, 초대코드, 회원가입
+│   │   ├── (tabs)/             # 홈, 검색, 작성, 활동, 프로필
+│   │   ├── [postId]/           # 게시물 상세
+│   │   └── user/[userId].tsx   # 유저 프로필
+│   ├── src/
+│   │   ├── components/         # PostCard, BottomSheet, MediaGallery 등
+│   │   ├── services/           # Axios API 클라이언트
+│   │   ├── stores/             # Zustand stores
+│   │   ├── types/              # API / 모델 타입
+│   │   └── utils/
+│   └── eas.json
 │
-└── log/                            # 변경 이력 로그 (MD 파일)
+├── bot/                        # 독립 봇 서비스
+│   ├── src/
+│   │   ├── api/                # Kimitter API client
+│   │   ├── bots/               # stockBot, newsBot
+│   │   ├── services/           # OpenAI, KIS, Naver services
+│   │   ├── webhook/            # 댓글 webhook 수신 서버
+│   │   ├── scheduler.ts        # cron 스케줄러
+│   │   └── index.ts
+│   └── Dockerfile
+│
+├── .github/workflows/          # Docker 이미지 자동 빌드/push
+├── log/                        # 개발 변경 로그 100+개
+├── AGENTS.md                   # AI agent 작업 가이드
+└── README.md
 ```
 
 ---
 
-## 인프라 및 배포
-
-### 백엔드 Docker 컨테이너화
-
-Multi-stage Dockerfile(`node:20-slim` 기반)로 빌드 최적화. `docker-compose.yml`로 PostgreSQL + Backend를 함께 관리.
-
-```bash
-cd backend
-
-# 전체 서비스 빌드 및 실행
-docker-compose up -d --build
-
-# 로그 확인
-docker-compose logs -f backend
-
-# 중지
-docker-compose down
-```
-
-### EAS Build (Development Client)
-
-Expo Go 대신 development build를 사용하여 expo-notifications 등 네이티브 기능 완전 지원.
-
-```bash
-cd frontend
-
-# iOS 시뮬레이터용 development build
-eas build --profile development --platform ios
-
-# Android 실기기용 development build (APK)
-eas build --profile development-device --platform android
-
-# 배포용 APK 빌드
-eas build --profile preview --platform android
-
-# development build 앱에서 개발 서버 연결
-npx expo start --dev-client
-```
-
-**EAS Build 프로필:**
-
-| 프로필 | 용도 | 플랫폼 |
-|--------|------|--------|
-| `development` | iOS 시뮬레이터 개발 | iOS (simulator) |
-| `development-device` | 실기기 개발 (APK) | Android |
-| `preview` | 내부 배포용 APK | Android |
-| `production` | 스토어 배포 | iOS / Android |
-
-### CI/CD (GitHub Actions)
-
-main 브랜치에 push하면 GitHub Actions가 자동으로 Docker 이미지를 빌드하여 Docker Hub에 push합니다.
-
-| 워크플로우 | 트리거 경로 | Docker 이미지 |
-|-----------|------------|--------------|
-| `deploy-backend.yml` | `backend/**` | `dusehd1/kimitter-backend:latest` |
-| `deploy-bot.yml` | `bot/**` | `dusehd1/kimitter-bot:latest` |
-
-**필요한 GitHub Secrets:**
-
-| Secret | 값 |
-|--------|------|
-| `DOCKER_USERNAME` | Docker Hub 사용자명 |
-| `DOCKER_PASSWORD` | Docker Hub 비밀번호 또는 Access Token |
-
-### NAS 배포 (Synology)
-
-Synology NAS (DS225+)의 Container Manager를 사용하여 프로덕션 배포. Docker Hub에서 이미지를 pull하여 실행.
-
-**배포 아키텍처:**
-
-```
-[Expo 앱] → https://kimitter.yeonnnn.xyz → [Cloudflare Tunnel] → [Express :3000] → [PostgreSQL :5432]
-                                                                        ↕ webhook
-                                                                  [Bot Service :4000] → [OpenAI / KIS / Naver API]
-```
-
-**Docker Hub 이미지:**
-
-| 이미지 | 설명 |
-|--------|------|
-| `dusehd1/kimitter-backend:latest` | Express API 서버 |
-| `dusehd1/kimitter-bot:latest` | 봇 서비스 |
-| `dusehd1/kimitter-expo-dev:latest` | Expo 개발 서버 |
-
-**배포 순서:**
-
-```bash
-# 자동 배포 (권장)
-# main 브랜치에 push → GitHub Actions가 Docker 이미지 자동 빌드 & Docker Hub push
-# NAS Task Scheduler가 주기적으로 pull & restart
-
-# 수동 배포
-cd backend
-docker buildx build --platform linux/amd64 -t dusehd1/kimitter-backend:latest --push .
-
-cd bot
-docker buildx build --platform linux/amd64 -t dusehd1/kimitter-bot:latest --push .
-```
-
-**NAS 파일 구조:**
-
-```
-/volume1/docker/kimitter/
-├── docker-compose.yml          # 프로덕션 오케스트레이션
-├── .env.production             # 프로덕션 환경변수
-├── postgres/                   # PostgreSQL 데이터 (자동 생성)
-├── uploads/                    # 업로드 파일 저장
-├── backups/                    # DB 백업 파일
-└── backup-db.sh                # DB 백업 스크립트
-```
-
-**프로덕션 docker-compose 주요 설정:**
-
-- 이미지: `dusehd1/kimitter-backend:latest`, `dusehd1/kimitter-bot:latest` (Docker Hub)
-- 컨테이너: `kimitter-db`, `kimitter-backend`, `kimitter-bot`, `kimitter-expo-dev`, `cloudflared`
-- 네트워크: `kimitter-net` (컨테이너 간 통신용 명시적 bridge 네트워크)
-- 볼륨: NAS 로컬 바인드 마운트 (`/volume1/docker/kimitter/`)
-- 자동 재시작: `restart: unless-stopped`
-
-### 외부 접속 (Cloudflare Tunnel)
-
-이중 NAT 환경에서 포트포워딩 없이 외부 접속을 지원하기 위해 Cloudflare Tunnel을 사용.
-
-- **도메인**: `kimitter.yeonnnn.xyz`
-- **DNS**: Cloudflare (가비아에서 네임서버 위임)
-- **장점**: 포트포워딩 불필요, 자동 HTTPS, 유동 IP 대응, DDoS 방어, 집 IP 미노출
-- **구성**: NAS Docker에서 `cloudflared` 컨테이너가 Cloudflare에 아웃바운드 터널 연결
-
-### DB 백업
-
-NAS Task Scheduler를 통해 매일 새벽 2시 자동 백업 실행.
-
-```bash
-# 수동 백업 실행
-sudo /volume1/docker/kimitter/backup-db.sh
-
-# 백업 파일 위치
-/volume1/docker/kimitter/backups/db_YYYYMMDD_HHMMSS.sql.gz
-
-# 복원
-gunzip -c backups/db_20260212_020000.sql.gz | \
-  docker exec -i kimitter-db psql -U family_user -d family_threads
-```
-
-- 30일 이상 된 백업 자동 삭제
-- 백업 로그: `/volume1/docker/kimitter/backups/backup.log`
-
----
-
-## 데이터베이스 스키마
-
-총 11개 모델:
-
-| 모델 | 설명 |
-|------|------|
-| `User` | 사용자 (username, nickname, bio, profileImageUrl, role: USER/ADMIN/BOT) |
-| `InvitationCode` | 초대 코드 (1회성, 만료일 설정 가능) |
-| `RefreshToken` | JWT 리프레시 토큰 저장 |
-| `Post` | 게시물 (소프트 삭제) |
-| `PostMedia` | 게시물 미디어 (PHOTO/GIF/VIDEO) |
-| `Tag` | 태그 |
-| `PostTag` | 게시물-태그 다대다 |
-| `Comment` | 댓글 (대댓글 지원, 소프트 삭제) |
-| `Like` | 게시물/댓글 좋아요 |
-| `Notification` | 알림 (POST_MENTION/COMMENT/REPLY/LIKE/CUSTOM) |
-| `PushToken` | Expo 푸시 토큰 |
-
----
-
-## API 엔드포인트
-
-| 그룹 | 주요 엔드포인트 |
-|------|---------------|
-| **Auth** | POST `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/refresh`, `/auth/validate-code`, `/auth/password-change` |
-| **Posts** | GET/POST `/posts`, GET/PUT/DELETE `/posts/:id`, GET `/posts/search` |
-| **Comments** | GET `/comments/post/:id`, POST `/comments/post/:id`, PUT/DELETE `/comments/:id`, POST `/comments/:id/replies` |
-| **Likes** | POST/DELETE `/posts/:id/like`, POST/DELETE `/comments/:id/like` |
-| **Tags** | GET `/tags`, GET `/tags/popular`, GET `/tags/search`, GET `/tags/:name/posts` |
-| **Users** | GET `/users/me`, PUT `/users/me`, GET `/users/:id`, GET `/users/:id/posts` |
-| **Notifications** | GET `/notifications`, GET `/notifications/unread`, PUT `/notifications/:id/read`, PUT `/notifications/read-all`, POST `/notifications/broadcast` |
-| **Activity** | GET `/activity` |
-| **Admin** | GET `/admin/users`, PUT `/admin/users/:id`, GET `/admin/invitation-codes`, POST `/admin/invitation-codes` |
-
----
-
-## 로컬 개발 환경 설정
+## 로컬 실행
 
 ### 사전 요구사항
 
 - Node.js 20+
-- Docker (PostgreSQL 컨테이너용)
-- Xcode (iOS 시뮬레이터) / Android Studio (Android 에뮬레이터)
+- npm
+- Docker / Docker Compose
+- iOS Simulator 또는 Android Emulator, 또는 Expo development build가 설치된 실기기
+- 선택: EAS CLI
 
-### 1. 저장소 클론 및 의존성 설치
+### 1. 저장소 클론
 
 ```bash
-git clone <repo-url>
-cd example
-
-# 백엔드
-cd backend && npm install
-
-# 프론트엔드
-cd ../frontend && npm install
+git clone https://github.com/0yeonnnn0/kimitter.git
+cd kimitter
 ```
 
-### 2. 환경변수 설정
+### 2. 백엔드 실행
 
-**백엔드** (`backend/.env`):
-```env
-NODE_ENV=development
-PORT=3000
-DATABASE_URL=postgresql://family_user:family_secret_pw@localhost:5432/family_threads
-JWT_SECRET=your-jwt-secret-change-this
-JWT_REFRESH_SECRET=your-refresh-secret-change-this
-JWT_EXPIRATION=1h
-JWT_REFRESH_EXPIRATION=7d
-UPLOAD_DIR=./uploads
-MAX_FILE_SIZE=104857600
-EXPO_ACCESS_TOKEN=your-expo-access-token
-BOT_WEBHOOK_URL=http://localhost:4000/webhook
-```
-
-**봇** (`bot/.env`):
-```env
-KIMITTER_API_URL=http://localhost:3000/api
-BOT_STOCK_USERNAME=stockbot
-BOT_STOCK_PASSWORD=stockbot1234
-BOT_NEWS_USERNAME=newsbot
-BOT_NEWS_PASSWORD=newsbot1234
-BOT_ENABLED=true
-BOT_WEBHOOK_PORT=4000
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_MODEL=gpt-4o-mini
-NAVER_CLIENT_ID=your-naver-client-id
-NAVER_CLIENT_SECRET=your-naver-client-secret
-KIS_APP_KEY=your-kis-app-key
-KIS_APP_SECRET=your-kis-app-secret
-```
-
-**프론트엔드** (`frontend/.env`):
-```env
-EXPO_PUBLIC_API_URL=http://localhost:3000/api
-```
-
-> 실제 기기 또는 iOS 시뮬레이터에서 테스트할 때는 `localhost` 대신 Mac의 로컬 IP를 사용하세요.
-> 예: `EXPO_PUBLIC_API_URL=http://192.168.219.51:3000/api`
-
-### 3. 데이터베이스 및 백엔드 시작
-
-**방법 A: Docker로 전체 실행 (권장)**
 ```bash
 cd backend
-docker-compose up -d --build
+npm install
+cp .env.example .env
+
+# PostgreSQL + backend 컨테이너 실행
+docker compose up -d --build
+
+# Prisma Client 생성 / 마이그레이션이 필요한 경우
+npx prisma generate
+npx prisma migrate dev
 ```
 
-**방법 B: DB만 Docker + 로컬 개발 서버**
+개발 서버를 로컬 Node.js로 띄우고 싶다면 DB만 Docker로 실행한 뒤 `npm run dev`를 사용합니다.
+
 ```bash
 cd backend
-docker-compose up -d    # PostgreSQL만 실행
-npx prisma migrate dev  # 마이그레이션 적용
-npm run dev             # 개발 서버 시작
+docker compose up -d postgres
+npm run dev
 ```
 
-### 4. 프론트엔드 앱 시작
+### 3. 프론트엔드 실행
 
-**Expo Go로 실행 (간편, 일부 기능 제한):**
 ```bash
 cd frontend
-npx expo start --ios       # iOS 시뮬레이터
-npx expo start --android   # Android 에뮬레이터
+npm install
+cp .env.example .env
+npm run start
 ```
 
-**Development Build로 실행 (전체 기능 지원):**
+실기기에서 테스트할 때는 `frontend/.env`의 API 주소를 `localhost`가 아닌 개발 머신의 LAN IP로 바꿔야 합니다.
+
+```env
+EXPO_PUBLIC_API_URL=http://192.168.x.x:3000/api
+```
+
+네이티브 모듈, 특히 푸시 알림까지 테스트하려면 Expo Go 대신 development build를 사용합니다.
+
 ```bash
 cd frontend
-# 최초 1회: development build 생성
-eas build --profile development --platform ios
-# 또는
-eas build --profile development-device --platform android
-
-# 이후 개발 서버 실행
 npx expo start --dev-client
 ```
 
-> Development build는 expo-notifications 등 네이티브 모듈이 완전히 작동합니다.
-> Expo Go에서는 푸시 알림 관련 경고가 표시됩니다.
-
----
-
-## 테스트 계정
-
-로컬 환경에서 즉시 테스트 가능한 계정:
-
-| 계정 유형 | 아이디 | 비밀번호 | 닉네임 | 역할 |
-|---------|--------|---------|--------|------|
-| **관리자** | `admin` | `admin1234` | 관리자 | ADMIN |
-| **일반 유저** | `testuser` | `test1234` | 테스트유저 | USER |
-| **주식봇** | `stockbot` | `stockbot1234` | 주식봇 | BOT |
-| **뉴스봇** | `newsbot` | `newsbot1234` | 뉴스봇 | BOT |
-
-### 추가 계정 만들기
-
-관리자 로그인 후 앱 내 프로필 페이지에서 "유저 초대하기" 버튼을 통해 초대 코드를 생성할 수 있습니다.
-
-또는 Prisma Studio를 사용:
-```bash
-cd backend
-npx prisma studio
-# http://localhost:5555 에서 InvitationCode 테이블에 레코드 추가
-```
-
----
-
-## 테스트 실행
-
-### 백엔드 (Jest + ts-jest)
-
-```bash
-cd backend
-
-npm test                                    # 전체 테스트
-npm test -- src/services/authService.test.ts  # 단일 파일
-npm test -- -t "login"                       # 이름으로 필터
-npm run test:watch                           # Watch 모드
-npm test -- --coverage                       # 커버리지
-```
-
-**백엔드 테스트 현황 (11 suites, 64 tests, 전체 통과):**
-
-| 테스트 파일 | 케이스 수 | 주요 커버 |
-|------------|----------|---------|
-| `utils/errors.test.ts` | 7 | AppError 계층, 상태 코드 |
-| `utils/jwt.test.ts` | 4 | 토큰 생성/검증, 변조 감지 |
-| `middleware/auth.test.ts` | 4 | Bearer 토큰 파싱, 권한 검사 |
-| `services/authService.test.ts` | 10 | 회원가입, 로그인, 로그아웃, 초대코드 |
-| `services/postService.test.ts` | 10 | 게시물 CRUD, 페이지네이션, 권한 |
-| `services/commentService.test.ts` | 9 | 댓글/답글, 수정/삭제 권한 |
-| `services/webhookService.test.ts` | 3 | 봇 webhook 전송, URL 미설정 스킵 |
-| `services/likeService.test.ts` | 4 | 좋아요 토글 |
-| `services/userService.test.ts` | 4 | 유저 조회/수정 |
-| `services/notificationService.test.ts` | 5 | 알림 조회, 읽음 처리 |
-| `services/tagService.test.ts` | 2 | 태그 조회 |
-
-### 봇 서비스 (Jest + ts-jest)
+### 4. 봇 서비스 실행
 
 ```bash
 cd bot
-
-npm test                                    # 전체 테스트
-npm test -- src/bots/stockBot.test.ts        # 단일 파일
-npx tsc --noEmit                            # 타입 검사
-npx ts-node scripts/testStockBot.ts         # 주식봇 수동 테스트 (KIS API 실제 호출)
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-**봇 테스트 현황 (9 suites, 75 tests, 전체 통과):**
+봇 서비스는 백엔드 API와 통신하므로 `KIMITTER_API_URL`과 봇 계정 정보가 먼저 준비되어 있어야 합니다.
 
-| 테스트 파일 | 케이스 수 | 주요 커버 |
-|------------|----------|---------|
-| `api/kimitterClient.test.ts` | 11 | 로그인, 토큰 갱신, 게시물/댓글 생성 |
-| `bots/stockBot.test.ts` | 6 | 주식 데이터 수집, 게시물 생성, 중복 체크 |
-| `bots/newsBot.test.ts` | 6 | 뉴스 수집, 게시물 생성, 중복 체크 |
-| `services/openaiService.test.ts` | 7 | 게시물/댓글 컨텐츠 생성, 토큰 사용량 |
-| `services/kisStockService.test.ts` | 12 | KIS 인증, 주가 조회, 거래량 순위 |
-| `services/naverNewsService.test.ts` | 14 | 뉴스 검색, HTML 태그 제거, 필터링 |
-| `scheduler.test.ts` | 5 | cron 작업 등록, 시작/중지 |
-| `webhook/commentReplyHandler.test.ts` | 9 | 봇 매칭, 댓글 생성, BOT 루프 방지 |
-| `webhook/webhookServer.test.ts` | 5 | webhook 엔드포인트, 페이로드 검증 |
+---
 
-### 프론트엔드
+## 환경변수
+
+실제 secret은 커밋하지 않습니다. 각 패키지의 `.env.example`을 복사해서 사용합니다.
+
+| 파일 | 설명 |
+|---|---|
+| `backend/.env.example` | DB URL, JWT secret, 업로드 경로, Expo push token, webhook URL |
+| `backend/.env.production.example` | NAS/프로덕션용 백엔드 환경변수 예시 |
+| `frontend/.env.example` | `EXPO_PUBLIC_API_URL` |
+| `bot/.env.example` | Kimitter API URL, bot 계정, OpenAI, Naver, KIS API 설정 |
+
+### 주요 백엔드 환경변수
+
+```env
+NODE_ENV=development
+PORT=3000
+DATABASE_URL=postgresql://family_user:password@localhost:5432/family_threads
+JWT_SECRET=change-me
+JWT_REFRESH_SECRET=change-me-too
+UPLOAD_DIR=./uploads
+BOT_WEBHOOK_URL=http://localhost:4000/webhook
+```
+
+### 주요 봇 환경변수
+
+```env
+KIMITTER_API_URL=http://localhost:3000/api
+BOT_ENABLED=true
+BOT_WEBHOOK_PORT=4000
+OPENAI_API_KEY=...
+NAVER_CLIENT_ID=...
+NAVER_CLIENT_SECRET=...
+KIS_APP_KEY=...
+KIS_APP_SECRET=...
+```
+
+---
+
+## 테스트와 검증
+
+### Backend
+
+```bash
+cd backend
+npm test
+npm run build
+npm run lint
+```
+
+현황:
+
+- 11 suites
+- 64 tests
+- 인증, 게시물, 댓글, 좋아요, 알림, 태그, 유저, webhook service, JWT 유틸리티 커버
+
+### Bot
+
+```bash
+cd bot
+npm test
+npm run build
+npm run type-check
+```
+
+현황:
+
+- 9 suites
+- 75 tests
+- Kimitter API client, 뉴스봇, 주식봇, OpenAI service, KIS service, Naver service, scheduler, webhook 커버
+
+### Frontend
 
 ```bash
 cd frontend
-npx tsc --noEmit    # 타입 검사
+npx tsc --noEmit
+npm run start
 ```
+
+현재 프론트엔드는 타입 검사 중심입니다. 컴포넌트 테스트는 향후 개선 항목입니다.
+
+---
+
+## 배포와 운영
+
+### GitHub Actions
+
+`main` 브랜치에 push하면 변경 경로에 따라 Docker 이미지가 자동으로 빌드됩니다.
+
+| Workflow | Trigger | Image |
+|---|---|---|
+| `.github/workflows/deploy-backend.yml` | `backend/**` | `dusehd1/kimitter-backend:latest` |
+| `.github/workflows/deploy-bot.yml` | `bot/**` | `dusehd1/kimitter-bot:latest` |
+
+필요한 GitHub Secrets:
+
+- `DOCKER_USERNAME`
+- `DOCKER_PASSWORD`
+
+### Synology NAS
+
+프로덕션은 Synology NAS의 Container Manager에서 Docker Compose로 운영합니다.
+
+```text
+/volume1/docker/kimitter/
+├── docker-compose.yml
+├── .env.production
+├── postgres/
+├── uploads/
+├── backups/
+└── backup-db.sh
+```
+
+운영 컨테이너:
+
+- `kimitter-db`
+- `kimitter-backend`
+- `kimitter-bot`
+- `kimitter-expo-dev`
+- `cloudflared`
+
+### Cloudflare Tunnel
+
+집 네트워크가 이중 NAT 환경이라 포트포워딩 대신 Cloudflare Tunnel을 사용합니다.
+
+장점:
+
+- 포트포워딩 불필요
+- HTTPS 자동 적용
+- 유동 IP 대응
+- 집 IP 비노출
+- Cloudflare 레벨의 기본 보호 활용
+
+### DB 백업
+
+NAS Task Scheduler가 매일 새벽 2시에 `pg_dump` 백업을 수행합니다.
+
+```bash
+# 수동 백업
+sudo /volume1/docker/kimitter/backup-db.sh
+
+# 백업 파일 예시
+/volume1/docker/kimitter/backups/db_YYYYMMDD_HHMMSS.sql.gz
+```
+
+30일이 지난 백업은 자동 삭제됩니다.
+
+---
+
+## 주요 구현 포인트
+
+### Expo Router 기반 모바일 라우팅
+
+`app/` 디렉터리 구조가 그대로 네비게이션이 됩니다.
+
+```text
+app/
+├── _layout.tsx
+├── (auth)/login.tsx
+├── (auth)/register.tsx
+├── (tabs)/index.tsx
+├── (tabs)/search.tsx
+├── (tabs)/activity.tsx
+├── (tabs)/profile.tsx
+├── [postId]/index.tsx
+└── user/[userId].tsx
+```
+
+인증 상태에 따라 `(auth)` 또는 `(tabs)` 그룹으로 분기하고, 알림에서 게시물 상세로 이동할 때 deep linking 구조를 활용할 수 있습니다.
+
+### Axios 401 refresh queue
+
+여러 API 요청이 동시에 401을 받았을 때 refresh 요청이 중복으로 발생하지 않도록 큐를 둡니다.
+
+- `isRefreshing`으로 refresh 진행 여부 관리
+- refresh 중 실패한 요청은 queue에서 대기
+- 새 access token 발급 후 대기 요청 일괄 재시도
+- `_retry` 플래그로 무한 루프 방지
+
+### JWT 이중 토큰 + SecureStore
+
+- Access Token: 1시간, API 인증용
+- Refresh Token: 7일, DB 저장 및 rotation
+- 모바일에서는 Expo SecureStore에 token 저장
+- 앱 cold start 시 refresh token 기반으로 세션 복원
+
+### Controller → Service → Prisma
+
+백엔드는 컨트롤러를 얇게 유지하고, 비즈니스 로직을 service 계층에 둡니다.
+
+```text
+routes → middleware → controller → service → Prisma
+```
+
+이 구조 덕분에 service 단위 테스트를 작성하기 쉬웠고, 백엔드 핵심 로직 대부분을 Jest로 검증할 수 있었습니다.
+
+### 봇 서비스 분리
+
+뉴스봇/주식봇은 백엔드 내부 cron이 아니라 별도 서비스입니다.
+
+- 봇 장애가 메인 API 장애로 번지지 않음
+- 봇만 독립적으로 배포 가능
+- OpenAI, KIS, Naver API 변경 영향을 격리
+- HTTP API + webhook으로만 백엔드와 연결
+
+### NAS 환경에서 겪은 문제 해결
+
+- Synology Container Manager에서 컨테이너 간 DNS 통신 문제
+  - 해결: `kimitter-net` 명시적 Docker network 생성
+- Alpine 기반 Node 이미지에서 Prisma OpenSSL 호환성 문제
+  - 해결: `node:20-slim` Debian 기반 이미지 사용
+- 수동 배포 반복 문제
+  - 해결: GitHub Actions + NAS Task Scheduler 자동 pull/restart
+
+---
+
+## 데이터베이스 모델
+
+Prisma 기준 주요 모델은 다음과 같습니다.
+
+| Model | 역할 |
+|---|---|
+| `User` | 사용자, 역할, 프로필, 캘린더 색상 |
+| `InvitationCode` | 초대 코드 |
+| `RefreshToken` | refresh token 저장 및 세션 관리 |
+| `Post` | 게시물 |
+| `PostMedia` | 사진/GIF/동영상 미디어 |
+| `Tag`, `PostTag` | 태그와 게시물 태그 연결 |
+| `Comment` | 댓글과 대댓글 |
+| `Like` | 게시물/댓글 좋아요 |
+| `Notification` | 알림 |
+| `PushToken` | Expo push token |
+| `Schedule` | 가족 일정/캘린더 |
+
+---
+
+## API 개요
+
+| 그룹 | 주요 엔드포인트 |
+|---|---|
+| Auth | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout` |
+| Posts | `GET /posts`, `POST /posts`, `GET /posts/:id`, `PUT /posts/:id`, `DELETE /posts/:id` |
+| Comments | `GET /comments/post/:id`, `POST /comments/post/:id`, `POST /comments/:id/replies` |
+| Likes | `POST /posts/:id/like`, `DELETE /posts/:id/like`, `POST /comments/:id/like` |
+| Tags | `GET /tags`, `GET /tags/popular`, `GET /tags/search`, `GET /tags/:name/posts` |
+| Users | `GET /users/me`, `PUT /users/me`, `GET /users/:id`, `GET /users/:id/posts` |
+| Notifications | `GET /notifications`, `GET /notifications/unread`, `PUT /notifications/read-all` |
+| Admin | `GET /admin/users`, `PUT /admin/users/:id`, `POST /admin/invitation-codes` |
+| Activity | `GET /activity` |
 
 ---
 
 ## 개발 명령어 요약
 
-### 백엔드
+### Backend
 
 ```bash
-npm run dev                            # 개발 서버 (nodemon + ts-node)
-npm run build                          # TypeScript 컴파일
-npm start                              # 프로덕션 서버
-npm test                               # Jest 테스트
-npm run lint                           # ESLint
-npx tsc --noEmit                       # 타입 검사
-npx prisma studio                      # DB GUI (http://localhost:5555)
-npx prisma migrate dev --name <name>   # 마이그레이션
-
-# Docker
-docker-compose up -d --build           # 전체 빌드 및 실행
-docker-compose down                    # 중지
-docker-compose logs -f backend         # 로그 확인
+cd backend
+npm run dev
+npm run build
+npm start
+npm test
+npm run lint
+npx prisma studio
+npx prisma migrate dev
 ```
 
-### 프론트엔드
+### Frontend
 
 ```bash
-npx expo start                         # 개발 서버 (Expo Go)
-npx expo start --dev-client             # 개발 서버 (Development Build)
-npx expo start --ios                    # iOS 시뮬레이터
-npx expo start --android                # Android 에뮬레이터
-npx tsc --noEmit                        # 타입 검사
-
-# EAS Build
-eas build --profile development --platform ios           # iOS 시뮬레이터용
-eas build --profile development-device --platform android # Android 실기기용 APK
-eas build --profile preview --platform android            # 배포용 APK
+cd frontend
+npm run start
+npm run ios
+npm run android
+npm run web
+npx tsc --noEmit
+npx expo start --dev-client
 ```
 
-### 봇 서비스
+### Bot
 
 ```bash
 cd bot
-npm run dev                                  # 개발 서버 (nodemon + ts-node)
-npm run build                                # TypeScript 컴파일
-npm start                                    # 프로덕션 서버
-npm test                                     # Jest 테스트
-npx tsc --noEmit                             # 타입 검사
-npx ts-node scripts/testStockBot.ts          # 주식봇 수동 테스트 (KIS API 실제 호출)
+npm run dev
+npm run build
+npm start
+npm test
+npm run type-check
+npx ts-node scripts/testStockBot.ts
 ```
 
 ---
 
-## 주요 개발 결정사항
+## 회고
 
-| 결정 | 이유 |
-|------|------|
-| Expo Router (파일 기반 라우팅) | 직관적인 네비게이션 구조, 딥링크 자동 지원 |
-| Zustand (상태 관리) | Redux 대비 보일러플레이트 최소화 |
-| SecureStore (토큰 저장) | AsyncStorage 대비 보안 강화 |
-| Prisma ORM | 타입 안전한 DB 쿼리, 마이그레이션 관리 |
-| JWT 이중 토큰 | Access(1h) + Refresh(7d) 보안/편의성 균형 |
-| 소프트 삭제 | 게시물/댓글에 `deletedAt` 컬럼으로 복구 가능 |
-| 낙관적 업데이트 | 좋아요 등 UI 즉각 반응, 실패 시 롤백 |
-| Docker 컨테이너화 | 백엔드 + DB 일관된 환경, 배포 간소화 |
-| expo-dev-client | Expo Go의 네이티브 모듈 제한 해결 |
-| Threads 스타일 레이아웃 | 2-column 구조로 아바타와 콘텐츠 분리, 가독성 향상 |
-| 이미지 자동 압축 | 업로드 전 리사이징/JPEG 변환으로 네트워크 부하 감소 |
-| node:20-slim (Debian) | Alpine에서 Prisma 엔진 OpenSSL 호환성 문제 해결 |
-| Cloudflare Tunnel | 이중 NAT 환경에서 포트포워딩 없이 외부 접속, 자동 HTTPS |
-| 명시적 Docker 네트워크 | Synology Container Manager에서 컨테이너 간 DNS 통신 보장 |
-| 봇 서비스 분리 | 백엔드와 독립 실행, HTTP API 경유 — 장애 격리, 독립 배포 |
-| OpenAI gpt-4o-mini | 비용 효율적 모델, 댓글 자동 응답 + 게시물 생성 |
-| GitHub Actions CI/CD | push 시 Docker 이미지 자동 빌드, 수동 배포 불필요 |
+### 잘한 점
+
+- **실사용자를 두고 만든 것**: 가족이 직접 쓰면서 발견한 불편함을 바로 개선할 수 있었습니다.
+- **Expo 선택**: 푸시 알림, 이미지 선택, 라우팅, development build까지 빠르게 연결할 수 있었습니다.
+- **봇 서비스 분리**: AI/외부 API 기능을 메인 백엔드와 격리해 운영 안정성을 높였습니다.
+- **배포 자동화**: `git push` 이후 NAS 반영까지 자동화해 운영 부담을 줄였습니다.
+- **변경 로그 기록**: `log/`에 100개 이상의 개발 기록을 남겨 회고와 면접 준비에 활용할 수 있었습니다.
+
+### 아쉬운 점
+
+- 프론트엔드 자동 테스트가 부족합니다.
+- 가족 전용 서비스라는 이유로 CORS, Rate Limiting 같은 방어를 뒤로 미뤘습니다.
+- Admin UI, 게시물 수정, 댓글 좋아요 UI 등 아직 남은 기능이 있습니다.
+
+### 배운 점
+
+- 작은 서비스라도 실제 사용자가 있으면 우선순위가 명확해집니다.
+- NAS + Docker 배포는 비용이 낮지만 네트워크, 이미지 호환성, 백업까지 고려해야 합니다.
+- AI 봇은 단순 자동 게시를 넘어 가족이 댓글로 상호작용하는 콘텐츠가 될 수 있습니다.
+- Webhook은 polling보다 단순하고 즉각적인 이벤트 기반 통합 방식이었습니다.
 
 ---
 
-## 알려진 이슈 및 TODO
+## TODO
 
-- [x] 푸시 알림 연동 (expo-notifications)
-- [x] EAS Build 설정 (development, preview 프로필)
-- [x] 백엔드 Docker 컨테이너화
-- [x] 프로필 이미지 확대 보기
-- [x] 블랙/화이트 컬러 스킴 적용
-- [x] Threads 스타일 2-column 레이아웃
-- [x] 게시물 액션 시트 (좋아요/댓글/삭제)
-- [x] 홈 상단 compose prompt
-- [x] 기본 아바타 person 아이콘 통일
-- [x] NAS 배포 설정 (Synology Container Manager + Cloudflare Tunnel)
-- [x] 외부 도메인 연결 (kimitter.yeonnnn.xyz)
-- [x] DB 자동 백업 스크립트
-- [x] 봇 서비스 구축 (주식봇 + 뉴스봇)
-- [x] 봇 댓글 자동 응답 (webhook)
-- [x] GitHub Actions CI/CD (백엔드 + 봇 자동 빌드)
-- [x] 관리자 전체 게시물 삭제 기능
-- [ ] Admin UI 화면 구현 (웹 또는 앱 내)
-- [ ] 댓글/답글에 좋아요 UI 추가
-- [ ] 동영상 재생 UI 개선
+- [ ] Admin UI 화면 구현
+- [ ] 댓글/답글 좋아요 UI
 - [ ] 게시물 수정 기능 프론트엔드 구현
+- [ ] 동영상 재생 UI 개선
 - [ ] 게시물 상세 페이지 2-column 레이아웃 적용
-- [ ] CORS 제한 설정 (현재 완전 개방)
-- [ ] Nginx 리버스 프록시 (선택적 — Cloudflare Tunnel로 대체 가능)
-- [ ] Rate Limiting
+- [ ] CORS allowlist 적용
+- [ ] Rate Limiting 적용
+- [ ] 프론트엔드 컴포넌트 테스트 추가
+- [ ] Nginx 리버스 프록시 검토, 현재는 Cloudflare Tunnel로 대체
+
+---
+
+## License
+
+개인/가족용 사이드 프로젝트입니다. 별도 라이선스가 필요하면 `LICENSE` 파일을 추가하세요.
